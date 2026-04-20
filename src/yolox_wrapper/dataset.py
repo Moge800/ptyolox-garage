@@ -31,12 +31,12 @@ from pathlib import Path
 from typing import Any
 
 _MODEL_CONFIGS: dict[str, dict[str, float]] = {
-    "nano":  {"depth": 0.33, "width": 0.25},
-    "tiny":  {"depth": 0.33, "width": 0.375},
-    "s":     {"depth": 0.33, "width": 0.50},
-    "m":     {"depth": 0.67, "width": 0.75},
-    "l":     {"depth": 1.00, "width": 1.00},
-    "x":     {"depth": 1.33, "width": 1.25},
+    "nano": {"depth": 0.33, "width": 0.25},
+    "tiny": {"depth": 0.33, "width": 0.375},
+    "s": {"depth": 0.33, "width": 0.50},
+    "m": {"depth": 0.67, "width": 0.75},
+    "l": {"depth": 1.00, "width": 1.00},
+    "x": {"depth": 1.33, "width": 1.25},
 }
 
 
@@ -102,9 +102,7 @@ class DatasetPreparer:
         cat_ids_sorted = sorted(c["id"] for c in raw_cats)
         self._id_remap = {orig: new for new, orig in enumerate(cat_ids_sorted)}
 
-        self._class_names = {
-            self._id_remap[c["id"]]: c["name"] for c in raw_cats
-        }
+        self._class_names = {self._id_remap[c["id"]]: c["name"] for c in raw_cats}
         self._num_classes = len(self._class_names)
 
     def _resolve_image_paths(self) -> list[dict[str, Any]]:
@@ -130,14 +128,16 @@ class DatasetPreparer:
                 missing.append(file_name)
                 continue
 
-            records.append({
-                "id":        img_info["id"],
-                "path":      found,
-                "file_name": Path(file_name).name,
-                "width":     img_info["width"],
-                "height":    img_info["height"],
-                "anns":      ann_by_image.get(img_info["id"], []),
-            })
+            records.append(
+                {
+                    "id": img_info["id"],
+                    "path": found,
+                    "file_name": Path(file_name).name,
+                    "width": img_info["width"],
+                    "height": img_info["height"],
+                    "anns": ann_by_image.get(img_info["id"], []),
+                }
+            )
 
         if missing:
             print(
@@ -189,12 +189,14 @@ class DatasetPreparer:
             if not dst.exists():
                 shutil.copy2(rec["path"], dst)
 
-            new_images.append({
-                "id":        new_img_id,
-                "file_name": rec["file_name"],
-                "width":     rec["width"],
-                "height":    rec["height"],
-            })
+            new_images.append(
+                {
+                    "id": new_img_id,
+                    "file_name": rec["file_name"],
+                    "width": rec["width"],
+                    "height": rec["height"],
+                }
+            )
 
             for ann in rec["anns"]:
                 new_cat_id = self._id_remap.get(ann["category_id"])
@@ -202,24 +204,25 @@ class DatasetPreparer:
                     continue
 
                 x, y, w, h = ann["bbox"]
-                new_anns.append({
-                    "id":           ann_id,
-                    "image_id":     new_img_id,
-                    "category_id":  new_cat_id,
-                    "bbox":         [float(x), float(y), float(w), float(h)],
-                    "area":         float(w * h),
-                    "segmentation": [],
-                    "iscrowd":      0,
-                    "ignore":       0,
-                })
+                new_anns.append(
+                    {
+                        "id": ann_id,
+                        "image_id": new_img_id,
+                        "category_id": new_cat_id,
+                        "bbox": [float(x), float(y), float(w), float(h)],
+                        "area": float(w * h),
+                        "segmentation": [],
+                        "iscrowd": 0,
+                        "ignore": 0,
+                    }
+                )
                 ann_id += 1
 
         coco_out = {
-            "images":      new_images,
+            "images": new_images,
             "annotations": new_anns,
-            "categories":  [
-                {"id": k, "name": v}
-                for k, v in sorted(self._class_names.items())
+            "categories": [
+                {"id": k, "name": v} for k, v in sorted(self._class_names.items())
             ],
             "info": {"contributor": "yolox_wrapper"},
         }
@@ -228,4 +231,6 @@ class DatasetPreparer:
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(coco_out, f, ensure_ascii=False, indent=2)
 
-        print(f"[Dataset]  {split}: {len(new_images)} 画像, {len(new_anns)} アノテーション → {json_path}")
+        print(
+            f"[Dataset]  {split}: {len(new_images)} 画像, {len(new_anns)} アノテーション → {json_path}"
+        )

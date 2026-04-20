@@ -91,8 +91,7 @@ def _build_config(
         from yolox.config import YoloxConfig
     except ImportError as e:
         raise ImportError(
-            "pixeltable-yolox パッケージが必要です。\n"
-            "  pip install pixeltable-yolox"
+            "pixeltable-yolox パッケージが必要です。\n" "  pip install pixeltable-yolox"
         ) from e
 
     class _Exp(YoloxConfig):
@@ -124,7 +123,9 @@ def _build_config(
                 name="val",
             )
 
-        def get_evaluator(self, batch_size, is_distributed, testdev=False, legacy=False):
+        def get_evaluator(
+            self, batch_size, is_distributed, testdev=False, legacy=False
+        ):
             from yolox.evaluators import COCOEvaluator
 
             return COCOEvaluator(
@@ -395,7 +396,9 @@ class _YOLOXTrainer:
         try:
             from yolox.models import YoloPafpn, YoloxHead, YoloxModule
         except ImportError as e:
-            raise ImportError("pixeltable-yolox パッケージが必要です。\n  pip install pixeltable-yolox") from e
+            raise ImportError(
+                "pixeltable-yolox パッケージが必要です。\n  pip install pixeltable-yolox"
+            ) from e
 
         in_channels = [256, 512, 1024]
         backbone = YoloPafpn(depth, width, in_channels=in_channels)

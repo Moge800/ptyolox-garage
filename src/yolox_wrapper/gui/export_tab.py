@@ -22,32 +22,40 @@ class ExportTab(ttk.Frame):
         frame.pack(padx=16, pady=16, fill="x")
 
         # モデルパス
-        ttk.Label(frame, text="モデルパス (.pt):").grid(row=0, column=0, sticky="w", pady=4)
+        ttk.Label(frame, text="モデルパス (.pt):").grid(
+            row=0, column=0, sticky="w", pady=4
+        )
         self._model_var = tk.StringVar()
         ttk.Entry(frame, textvariable=self._model_var, width=50).grid(
             row=0, column=1, sticky="ew", padx=(4, 0)
         )
-        ttk.Button(frame, text="...", width=3,
-                   command=self._browse_model).grid(row=0, column=2, padx=(2, 0))
+        ttk.Button(frame, text="...", width=3, command=self._browse_model).grid(
+            row=0, column=2, padx=(2, 0)
+        )
 
         # 出力パス
-        ttk.Label(frame, text="出力パス (.onnx):").grid(row=1, column=0, sticky="w", pady=4)
+        ttk.Label(frame, text="出力パス (.onnx):").grid(
+            row=1, column=0, sticky="w", pady=4
+        )
         self._output_var = tk.StringVar()
         ttk.Entry(frame, textvariable=self._output_var, width=50).grid(
             row=1, column=1, sticky="ew", padx=(4, 0)
         )
-        ttk.Button(frame, text="...", width=3,
-                   command=self._browse_output).grid(row=1, column=2, padx=(2, 0))
-        ttk.Label(frame, text="(空欄 = モデルと同じディレクトリに保存)",
-                  foreground="gray").grid(row=2, column=1, sticky="w")
+        ttk.Button(frame, text="...", width=3, command=self._browse_output).grid(
+            row=1, column=2, padx=(2, 0)
+        )
+        ttk.Label(
+            frame, text="(空欄 = モデルと同じディレクトリに保存)", foreground="gray"
+        ).grid(row=2, column=1, sticky="w")
 
         frame.columnconfigure(1, weight=1)
 
         # ボタン + ステータス
         btn_frame = ttk.Frame(self)
         btn_frame.pack(padx=16, pady=8, fill="x")
-        self._export_btn = ttk.Button(btn_frame, text="エクスポート実行",
-                                      command=self._export)
+        self._export_btn = ttk.Button(
+            btn_frame, text="エクスポート実行", command=self._export
+        )
         self._export_btn.pack(side="left")
 
         self._status_label = ttk.Label(self, text="", foreground="gray")
@@ -80,10 +88,10 @@ class ExportTab(ttk.Frame):
 
     def _on_done(self, output_path: str) -> None:
         self._export_btn.config(state="normal")
-        self._status_label.config(
-            text=f"完了: {output_path}", foreground="green"
+        self._status_label.config(text=f"完了: {output_path}", foreground="green")
+        messagebox.showinfo(
+            "エクスポート完了", f"ONNX ファイルを保存しました:\n{output_path}"
         )
-        messagebox.showinfo("エクスポート完了", f"ONNX ファイルを保存しました:\n{output_path}")
 
     def _on_error(self, msg: str) -> None:
         self._export_btn.config(state="normal")
