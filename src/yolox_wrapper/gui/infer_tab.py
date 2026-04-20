@@ -1,5 +1,7 @@
 """推論テストタブ"""
 
+from __future__ import annotations
+
 import tkinter as tk
 from tkinter import filedialog, messagebox, scrolledtext, ttk
 from typing import Any

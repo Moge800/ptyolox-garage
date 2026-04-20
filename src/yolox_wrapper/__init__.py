@@ -12,6 +12,8 @@
     model.export(format="onnx")
 """
 
+from __future__ import annotations
+
 from .config import AppConfig, ProfileParams
 from .wrapper import YOLOX, YOLOXBoxes, YOLOXResult
 

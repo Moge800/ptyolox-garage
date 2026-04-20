@@ -3,11 +3,11 @@ name = "yolox-wrapper"
 version = "0.1.0"
 description = "YOLOX training, inference and deployment toolkit"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 
 dependencies = [
     "beep-lite>=0.1.3",
-    "numpy>=1.24,<2.0",
+    "numpy>=1.24",
     "opencv-python>=4.8",
     "pillow>=10.0",
     "pyyaml>=6.0",
@@ -59,7 +59,7 @@ packages = ["src/yolox_wrapper"]
 [tool.ruff]
 line-length = 100
 src = ["src"]
-target-version = "py312"
+target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP"]

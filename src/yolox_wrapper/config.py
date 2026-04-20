@@ -13,6 +13,8 @@ config.ini をプロジェクトルートから読み書きします。
     cfg.save()
 """
 
+from __future__ import annotations
+
 import configparser
 from dataclasses import dataclass, fields
 from pathlib import Path
@@ -21,30 +23,31 @@ from pathlib import Path
 _DEFAULT_CONFIG_PATH = Path(__file__).parent.parent.parent / "config.ini"
 
 _DEFAULTS: dict[str, str] = {
-    "device":     "cpu",
+    "device": "cpu",
     "model_size": "l",
     "batch_size": "16",
-    "imgsz":      "640",
-    "workers":    "4",
-    "val_split":  "0.2",
+    "imgsz": "640",
+    "workers": "4",
+    "val_split": "0.2",
     "output_dir": "",
-    "conf":       "0.25",
-    "iou":        "0.45",
+    "conf": "0.25",
+    "iou": "0.45",
 }
 
 
 @dataclass
 class ProfileParams:
     """1プロファイル分のパラメータ"""
-    device:     str   = "cpu"
-    model_size: str   = "l"
-    batch_size: int   = 16
-    imgsz:      int   = 640
-    workers:    int   = 4
-    val_split:  float = 0.2
-    output_dir: str   = ""
-    conf:       float = 0.25
-    iou:        float = 0.45
+
+    device: str = "cpu"
+    model_size: str = "l"
+    batch_size: int = 16
+    imgsz: int = 640
+    workers: int = 4
+    val_split: float = 0.2
+    output_dir: str = ""
+    conf: float = 0.25
+    iou: float = 0.45
 
 
 class AppConfig:
