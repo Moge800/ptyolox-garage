@@ -13,6 +13,8 @@ config.ini をプロジェクトルートから読み書きします。
     cfg.save()
 """
 
+from __future__ import annotations
+
 import configparser
 from dataclasses import dataclass, fields
 from pathlib import Path

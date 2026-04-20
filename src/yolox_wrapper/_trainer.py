@@ -10,6 +10,8 @@
         Stage 2: max_epoch=300, resume=True  → epoch 201 から再開
 """
 
+from __future__ import annotations
+
 import argparse
 import io
 import shutil

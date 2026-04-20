@@ -1,5 +1,7 @@
 """ONNX エクスポートタブ"""
 
+from __future__ import annotations
+
 import threading
 import tkinter as tk
 from pathlib import Path

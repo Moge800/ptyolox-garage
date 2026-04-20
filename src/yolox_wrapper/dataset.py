@@ -21,6 +21,8 @@ YOLOX が期待する出力構造:
         └── *.jpg / *.png ...
 """
 
+from __future__ import annotations
+
 import json
 import random
 import shutil
