@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Python **3.12** or later
+- Python **3.10** or later
 - [uv](https://docs.astral.sh/uv/) (recommended package manager)
 
 ## Steps

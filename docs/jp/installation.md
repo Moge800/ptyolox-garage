@@ -2,7 +2,7 @@
 
 ## 必要環境
 
-- Python **3.12** 以上
+- Python **3.10** 以上
 - [uv](https://docs.astral.sh/uv/) (推奨パッケージマネージャー)
 
 ## 手順
