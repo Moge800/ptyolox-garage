@@ -16,7 +16,7 @@ Headless usage example:
 
 
 def main() -> None:
-    from ptyolox_garage.gui.app import main as _gui_main
+    from ptyolox_garage_bootstrap import main as _gui_main
 
     _gui_main()
 

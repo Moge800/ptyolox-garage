@@ -1,5 +1,7 @@
 """Tests for wrapper behavior that does not require the yolox package."""
 
+import subprocess
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -271,13 +273,88 @@ class TestYOLOXSaveLoad:
 class TestGUIEntryPoint:
     def test_gui_main_is_importable(self) -> None:
         """Import the ptyolox-garage script entry point."""
-        from ptyolox_garage.gui.app import main as gui_main
+        from ptyolox_garage_bootstrap import main as gui_main
 
         assert callable(gui_main)
 
-    def test_root_main_delegates_to_gui(self) -> None:
-        """Have main.py call ptyolox_garage.gui.app.main."""
+    def test_bootstrap_import_is_lightweight(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import sys; import ptyolox_garage_bootstrap; "
+                "assert 'ptyolox_garage' not in sys.modules",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        assert result.returncode == 0, result.stderr
+
+    def test_bootstrap_logs_before_delegating(self, capsys, monkeypatch) -> None:
+        import ptyolox_garage_bootstrap as bootstrap
+        from ptyolox_garage.gui import app
+
+        delegated = []
+        monkeypatch.setattr(app, "main", lambda *, started_at: delegated.append(started_at))
+        monkeypatch.setattr(bootstrap.time, "perf_counter", lambda: 12.5)
+
+        bootstrap.main()
+
+        assert delegated == [12.5]
+        assert capsys.readouterr().out.splitlines() == [
+            "[PTYOLOX Garage] Starting...",
+            "[PTYOLOX Garage] Loading GUI components...",
+        ]
+
+    def test_bootstrap_reports_failed_stage(self, capsys, monkeypatch) -> None:
+        import ptyolox_garage_bootstrap as bootstrap
+        from ptyolox_garage.gui import app
+
+        def fail(*, started_at: float) -> None:
+            bootstrap.startup_log(
+                "Loading ML dependencies...", stage="loading ML dependencies"
+            )
+            raise RuntimeError("missing dependency")
+
+        monkeypatch.setattr(app, "main", fail)
+
+        with pytest.raises(RuntimeError, match="missing dependency"):
+            bootstrap.main()
+
+        captured = capsys.readouterr()
+        assert "Loading ML dependencies..." in captured.out
+        assert captured.err.strip() == (
+            "[PTYOLOX Garage] Failed while loading ML dependencies: missing dependency"
+        )
+
+    def test_gui_main_reports_ready_time(self, capsys, monkeypatch) -> None:
+        from ptyolox_garage.gui import app
+
+        mainloop_calls = []
+
+        class FakeApp:
+            def mainloop(self) -> None:
+                mainloop_calls.append(True)
+
+        monkeypatch.setattr(app, "App", FakeApp)
+        monkeypatch.setattr(app.time, "perf_counter", lambda: 14.2)
+
+        app.main(started_at=10.0)
+
+        assert mainloop_calls == [True]
+        assert capsys.readouterr().out.strip() == "[PTYOLOX Garage] Ready (4.2s)"
+
+    def test_root_main_delegates_to_bootstrap(self, monkeypatch) -> None:
+        """Have main.py call the lightweight bootstrap entry point."""
         import importlib
 
         mod = importlib.import_module("main")
-        assert callable(mod.main)
+        import ptyolox_garage_bootstrap as bootstrap
+
+        called = []
+        monkeypatch.setattr(bootstrap, "main", lambda: called.append(True))
+        mod.main()
+
+        assert called == [True]
