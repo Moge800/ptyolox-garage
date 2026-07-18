@@ -61,6 +61,36 @@ def test_language_change_is_rejected_while_training() -> None:
     showwarning.assert_called_once()
 
 
+def test_profile_is_restored_after_language_change() -> None:
+    profile_var = _Value("default")
+    loaded_profiles: list[str] = []
+    app = SimpleNamespace(
+        config_mgr=SimpleNamespace(profiles=lambda: ["default", "factory_pc"]),
+        _profile_var=profile_var,
+        _on_profile_changed=lambda: loaded_profiles.append(str(profile_var.get())),
+    )
+
+    App._restore_profile(app, "factory_pc")  # type: ignore[arg-type]
+
+    assert profile_var.get() == "factory_pc"
+    assert loaded_profiles == ["factory_pc"]
+
+
+def test_missing_profile_falls_back_to_default() -> None:
+    profile_var = _Value("factory_pc")
+    loaded_profiles: list[str] = []
+    app = SimpleNamespace(
+        config_mgr=SimpleNamespace(profiles=lambda: ["default"]),
+        _profile_var=profile_var,
+        _on_profile_changed=lambda: loaded_profiles.append(str(profile_var.get())),
+    )
+
+    App._restore_profile(app, "factory_pc")  # type: ignore[arg-type]
+
+    assert profile_var.get() == "default"
+    assert loaded_profiles == ["default"]
+
+
 def test_background_task_state() -> None:
     train_tab = object.__new__(TrainTab)
     train_tab._running = True

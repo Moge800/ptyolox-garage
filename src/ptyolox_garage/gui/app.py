@@ -103,6 +103,13 @@ class App(tk.Tk):
         self._infer_tab.load_profile(profile)
         self._camera_tab.load_profile(profile)
 
+    def _restore_profile(self, profile: str) -> None:
+        """Restore a profile selection after rebuilding the translated UI."""
+        if profile not in self.config_mgr.profiles():
+            profile = "default"
+        self._profile_var.set(profile)
+        self._on_profile_changed()
+
     def _save_config(self) -> None:
         self._train_tab.save_profile()
         self._infer_tab.save_profile()
@@ -163,6 +170,7 @@ class App(tk.Tk):
             )
             return
 
+        selected_profile = self._profile_var.get()
         self._train_tab.save_profile()
         self._infer_tab.save_profile()
         self._camera_tab.save_profile()
@@ -176,6 +184,7 @@ class App(tk.Tk):
         self.config(menu="")
         self.title("PTYOLOX Garage")
         self._build_ui()
+        self._restore_profile(selected_profile)
 
     def _show_status(self, msg: str) -> None:
         # ウィンドウタイトルに一時的に表示
