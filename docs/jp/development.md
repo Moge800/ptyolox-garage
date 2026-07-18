@@ -3,8 +3,8 @@
 ## 開発環境のセットアップ
 
 ```bash
-git clone https://github.com/Moge800/yolox_wrapper.git
-cd yolox_wrapper
+git clone https://github.com/Moge800/ptyolox-garage.git
+cd ptyolox-garage
 uv sync --group dev
 ```
 
@@ -19,7 +19,7 @@ uv run pytest
 カバレッジ付きで実行:
 
 ```bash
-uv run pytest --cov=src/yolox_wrapper
+uv run pytest --cov=src/ptyolox_garage
 ```
 
 ### テスト構成
@@ -46,12 +46,12 @@ uv run ruff format .       # フォーマット
 ## プロジェクト構造
 
 ```
-yolox_wrapper/
+ptyolox_garage/
 ├── main.py                     # GUI エントリポイント
-├── config.ini                  # アプリケーション設定
+├── config.example.ini                  # アプリケーション設定
 ├── pyproject.toml              # パッケージ設定
 ├── src/
-│   └── yolox_wrapper/
+│   └── ptyolox_garage/
 │       ├── __init__.py         # パッケージエクスポート
 │       ├── config.py           # 設定管理 (AppConfig, ProfileParams)
 │       ├── dataset.py          # データセット準備 (DatasetPreparer)
@@ -89,4 +89,22 @@ gui/app.py ──→ gui/*_tab.py ──→ wrapper.py, config.py
 
 ## ライセンス
 
-MIT License — 詳細は [LICENSE](../../LICENSE) を参照してください。
+Apache License 2.0 — 詳細は [LICENSE](../../LICENSE) を参照してください。
+
+---
+
+## PyPIリリース
+
+PyPI公開にはTrusted Publishingを使用し、GitHub Releaseの公開を契機に
+自動実行します。PyPI側のPublisherには以下を設定します。
+
+| 設定 | 値 |
+|---|---|
+| Owner | `Moge800` |
+| Repository | `ptyolox-garage` |
+| Workflow | `publish.yml` |
+| Environment | `pypi` |
+
+公開前に`pyproject.toml`の`project.version`を更新し、`v<version>`形式の
+タグからGitHub Releaseを公開します。Actionsがタグ照合、テスト、Ruff、
+wheel/sdist生成、PyPI公開、Releaseへの成果物添付を自動実行します。

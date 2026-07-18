@@ -1,8 +1,8 @@
-"""YOLOX Wrapper パッケージ
+"""PTYOLOX Garage package.
 
 使用例::
 
-    from yolox_wrapper import YOLOX
+    from ptyolox_garage import YOLOX
 
     model = YOLOX("l")
     model.train(data="data.yaml", epochs=[100, 200, 300], device="cuda:0")
@@ -18,3 +18,5 @@ from .config import AppConfig, ProfileParams
 from .wrapper import YOLOX, YOLOXBoxes, YOLOXResult
 
 __all__ = ["YOLOX", "YOLOXBoxes", "YOLOXResult", "AppConfig", "ProfileParams"]
+
+__version__ = "0.1.0"

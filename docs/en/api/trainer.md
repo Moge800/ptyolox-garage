@@ -1,6 +1,6 @@
 # API Reference — _YOLOXTrainer (trainer)
 
-The `yolox_wrapper._trainer` module is an internal module that manages YOLOX training execution.
+The `ptyolox_garage._trainer` module is an internal module that manages YOLOX training execution.
 
 > This module is a private API. It is typically used indirectly through `YOLOX.train()`.
 

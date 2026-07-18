@@ -7,7 +7,7 @@ import pytest
 import torch
 import torch.nn as nn
 
-from yolox_wrapper.wrapper import (
+from ptyolox_garage.wrapper import (
     YOLOX,
     YOLOXBoxes,
     YOLOXResult,
@@ -270,13 +270,13 @@ class TestYOLOXSaveLoad:
 
 class TestGUIEntryPoint:
     def test_gui_main_is_importable(self) -> None:
-        """yolox-gui スクリプトのエントリポイントがインポートできる"""
-        from yolox_wrapper.gui.app import main as gui_main
+        """ptyolox-garage スクリプトのエントリポイントがインポートできる"""
+        from ptyolox_garage.gui.app import main as gui_main
 
         assert callable(gui_main)
 
     def test_root_main_delegates_to_gui(self) -> None:
-        """main.py が yolox_wrapper.gui.app.main を呼び出す"""
+        """main.py が ptyolox_garage.gui.app.main を呼び出す"""
         import importlib
 
         mod = importlib.import_module("main")

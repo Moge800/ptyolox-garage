@@ -7,6 +7,7 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
+from ..i18n import tr
 from ..wrapper import YOLOX
 
 
@@ -18,11 +19,11 @@ class ExportTab(ttk.Frame):
         self._build()
 
     def _build(self) -> None:
-        frame = ttk.LabelFrame(self, text="ONNX エクスポート設定", padding=12)
+        frame = ttk.LabelFrame(self, text=tr("ONNX エクスポート設定", "ONNX Export Settings"), padding=12)
         frame.pack(padx=16, pady=16, fill="x")
 
         # モデルパス
-        ttk.Label(frame, text="モデルパス (.pt):").grid(
+        ttk.Label(frame, text=tr("モデルパス (.pt):", "Model path (.pt):")).grid(
             row=0, column=0, sticky="w", pady=4
         )
         self._model_var = tk.StringVar()
@@ -34,7 +35,7 @@ class ExportTab(ttk.Frame):
         )
 
         # 出力パス
-        ttk.Label(frame, text="出力パス (.onnx):").grid(
+        ttk.Label(frame, text=tr("出力パス (.onnx):", "Output path (.onnx):")).grid(
             row=1, column=0, sticky="w", pady=4
         )
         self._output_var = tk.StringVar()
@@ -45,7 +46,9 @@ class ExportTab(ttk.Frame):
             row=1, column=2, padx=(2, 0)
         )
         ttk.Label(
-            frame, text="(空欄 = モデルと同じディレクトリに保存)", foreground="gray"
+            frame,
+            text=tr("(空欄 = モデルと同じディレクトリに保存)", "(Blank = save next to the model)"),
+            foreground="gray",
         ).grid(row=2, column=1, sticky="w")
 
         frame.columnconfigure(1, weight=1)
@@ -54,7 +57,7 @@ class ExportTab(ttk.Frame):
         btn_frame = ttk.Frame(self)
         btn_frame.pack(padx=16, pady=8, fill="x")
         self._export_btn = ttk.Button(
-            btn_frame, text="エクスポート実行", command=self._export
+            btn_frame, text=tr("エクスポート実行", "Export"), command=self._export
         )
         self._export_btn.pack(side="left")
 
@@ -64,12 +67,12 @@ class ExportTab(ttk.Frame):
     def _export(self) -> None:
         model_path = self._model_var.get().strip()
         if not model_path:
-            messagebox.showwarning("入力エラー", "モデルパスを指定してください。")
+            messagebox.showwarning(tr("入力エラー", "Input Error"), tr("モデルパスを指定してください。", "Specify a model path."))
             return
 
         output_path = self._output_var.get().strip() or None
         self._export_btn.config(state="disabled")
-        self._status_label.config(text="エクスポート中...", foreground="gray")
+        self._status_label.config(text=tr("エクスポート中...", "Exporting..."), foreground="gray")
 
         threading.Thread(
             target=self._run_export,
@@ -88,19 +91,20 @@ class ExportTab(ttk.Frame):
 
     def _on_done(self, output_path: str) -> None:
         self._export_btn.config(state="normal")
-        self._status_label.config(text=f"完了: {output_path}", foreground="green")
+        self._status_label.config(text=tr(f"完了: {output_path}", f"Done: {output_path}"), foreground="green")
         messagebox.showinfo(
-            "エクスポート完了", f"ONNX ファイルを保存しました:\n{output_path}"
+            tr("エクスポート完了", "Export Complete"),
+            tr(f"ONNX ファイルを保存しました:\n{output_path}", f"Saved ONNX file:\n{output_path}"),
         )
 
     def _on_error(self, msg: str) -> None:
         self._export_btn.config(state="normal")
-        self._status_label.config(text=f"エラー: {msg}", foreground="red")
-        messagebox.showerror("エクスポートエラー", msg)
+        self._status_label.config(text=tr(f"エラー: {msg}", f"Error: {msg}"), foreground="red")
+        messagebox.showerror(tr("エクスポートエラー", "Export Error"), msg)
 
     def _browse_model(self) -> None:
         path = filedialog.askopenfilename(
-            filetypes=[("PyTorch モデル", "*.pt"), ("全ファイル", "*.*")]
+            filetypes=[(tr("PyTorch モデル", "PyTorch Model"), "*.pt"), (tr("全ファイル", "All Files"), "*.*")]
         )
         if path:
             self._model_var.set(path)
@@ -111,7 +115,7 @@ class ExportTab(ttk.Frame):
     def _browse_output(self) -> None:
         path = filedialog.asksaveasfilename(
             defaultextension=".onnx",
-            filetypes=[("ONNX", "*.onnx"), ("全ファイル", "*.*")],
+            filetypes=[("ONNX", "*.onnx"), (tr("全ファイル", "All Files"), "*.*")],
         )
         if path:
             self._output_var.set(path)

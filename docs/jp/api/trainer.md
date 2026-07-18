@@ -1,6 +1,6 @@
 # API リファレンス — _YOLOXTrainer (trainer)
 
-`yolox_wrapper._trainer` モジュールは、YOLOX の学習実行を管理する内部モジュールです。
+`ptyolox_garage._trainer` モジュールは、YOLOX の学習実行を管理する内部モジュールです。
 
 > このモジュールはプライベート API です。通常は `YOLOX.train()` を通じて間接的に利用されます。
 

@@ -224,7 +224,7 @@ class DatasetPreparer:
             "categories": [
                 {"id": k, "name": v} for k, v in sorted(self._class_names.items())
             ],
-            "info": {"contributor": "yolox_wrapper"},
+            "info": {"contributor": "ptyolox_garage"},
         }
 
         json_path = ann_dir / f"instances_{split}.json"

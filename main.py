@@ -1,10 +1,10 @@
-"""YOLOX Wrapper エントリポイント
+"""PTYOLOX Garage entry point.
 
 GUI 起動:
     uv run main.py
 
 ヘッドレス使用例:
-    from yolox_wrapper import YOLOX
+    from ptyolox_garage import YOLOX
 
     model = YOLOX("l")
     model.train(data="data.yaml", epochs=[100, 200, 300], device="cuda:0", batch=16)
@@ -16,7 +16,7 @@ GUI 起動:
 
 
 def main() -> None:
-    from yolox_wrapper.gui.app import main as _gui_main
+    from ptyolox_garage.gui.app import main as _gui_main
 
     _gui_main()
 

@@ -1,9 +1,27 @@
 [project]
-name = "yolox-wrapper"
+name = "ptyolox-garage"
 version = "0.1.0"
-description = "YOLOX training, inference and deployment toolkit"
+description = "A practical GUI and Python toolkit for Pixeltable YOLOX"
 readme = "README.md"
 requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [
+    { name = "Moge800" },
+]
+keywords = ["yolox", "object-detection", "pytorch", "computer-vision", "tkinter"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 
 dependencies = [
     "beep-lite>=0.1.3",
@@ -16,7 +34,14 @@ dependencies = [
     "pixeltable-yolox>=0.4.2",
     "onnx>=1.16",
     "ml-dtypes>=0.5.0",
+    "platformdirs>=4.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Moge800/ptyolox-garage"
+Repository = "https://github.com/Moge800/ptyolox-garage"
+Documentation = "https://github.com/Moge800/ptyolox-garage/tree/main/docs"
+Issues = "https://github.com/Moge800/ptyolox-garage/issues"
 
 [dependency-groups]
 dev = [
@@ -28,7 +53,7 @@ dev = [
 ]
 
 [project.scripts]
-yolox-gui = "yolox_wrapper.gui.app:main"
+ptyolox-garage = "ptyolox_garage.gui.app:main"
 
 # ---------------------------------------------------------------------------
 # uv — PyTorch CUDA 12.1 index
@@ -47,11 +72,11 @@ torchvision = [
 ]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.26"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/yolox_wrapper"]
+packages = ["src/ptyolox_garage"]
 
 # ---------------------------------------------------------------------------
 # Ruff

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from yolox_wrapper.dataset import DatasetPreparer
+from ptyolox_garage.dataset import DatasetPreparer
 
 # ---------------------------------------------------------------------------
 # フィクスチャ

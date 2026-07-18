@@ -1,6 +1,6 @@
 # API リファレンス — DatasetPreparer (dataset)
 
-`yolox_wrapper.dataset` モジュールは、Label Studio の COCO エクスポートを YOLOX の学習用ディレクトリ構造に変換します。
+`ptyolox_garage.dataset` モジュールは、Label Studio の COCO エクスポートを YOLOX の学習用ディレクトリ構造に変換します。
 
 ---
 
@@ -88,7 +88,7 @@ output_dir/
 ## 使用例
 
 ```python
-from yolox_wrapper.dataset import DatasetPreparer
+from ptyolox_garage.dataset import DatasetPreparer
 
 preparer = DatasetPreparer(
     coco_json_path="export/result.json",

@@ -1,6 +1,6 @@
 """YOLOX トレーニング内部実装モジュール
 
-このモジュールは yolox_wrapper.wrapper.YOLOX.train() から呼ばれる内部実装です。
+このモジュールは ptyolox_garage.wrapper.YOLOX.train() から呼ばれる内部実装です。
 直接使う場合は YOLOXModelCreator クラスを使用してください。
 
 順次エポック学習の仕組み:
@@ -36,7 +36,7 @@ class _LogRedirector:
         self._original_stdout = None
         self._original_stderr = None
 
-    def __enter__(self) -> "_LogRedirector":
+    def __enter__(self) -> _LogRedirector:
         if self._callback is None:
             return self
         self._original_stdout = sys.stdout
@@ -320,7 +320,7 @@ class _YOLOXTrainer:
         checkpoint_path: str | None = None,
         output_model_path: str | None = None,
     ) -> str:
-        """チェックポイントを yolox_wrapper.YOLOX が読み込める .pt に変換する
+        """チェックポイントを ptyolox_garage.YOLOX が読み込める .pt に変換する
 
         Args:
             class_names:       クラス名辞書 {0: "cat", 1: "dog"}

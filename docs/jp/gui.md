@@ -1,11 +1,11 @@
 # GUI ガイド
 
-YOLOX Wrapper には tkinter ベースの GUI アプリケーションが付属しています。
+PTYOLOX Garage には tkinter ベースの GUI アプリケーションが付属しています。
 
 ## 起動方法
 
 ```bash
-uv run yolox-gui
+uv run ptyolox-garage
 # または
 uv run python main.py
 ```

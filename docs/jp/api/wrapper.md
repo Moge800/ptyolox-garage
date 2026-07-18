@@ -1,6 +1,6 @@
 # API リファレンス — YOLOX (wrapper)
 
-`yolox_wrapper.wrapper` モジュールは、YOLOX モデルの読み込み・推論・学習・エクスポートを統合するメインクラスを提供します。
+`ptyolox_garage.wrapper` モジュールは、YOLOX モデルの読み込み・推論・学習・エクスポートを統合するメインクラスを提供します。
 
 ---
 

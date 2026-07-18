@@ -7,11 +7,20 @@
 
 ## 手順
 
+通常のインストールではPyPIを使用します。
+
+```bash
+pip install ptyolox-garage
+ptyolox-garage
+```
+
+以下は開発用チェックアウトを構築する手順です。
+
 ### 1. リポジトリのクローン
 
 ```bash
-git clone https://github.com/Moge800/yolox_wrapper.git
-cd yolox_wrapper
+git clone https://github.com/Moge800/ptyolox-garage.git
+cd ptyolox-garage
 ```
 
 ### 2. 仮想環境の作成と依存パッケージのインストール
@@ -25,7 +34,7 @@ uv sync
 ### 3. 動作確認
 
 ```bash
-uv run python -c "from yolox_wrapper import YOLOX; print('OK')"
+uv run python -c "from ptyolox_garage import YOLOX; print('OK')"
 ```
 
 ---
