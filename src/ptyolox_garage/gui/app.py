@@ -1,16 +1,15 @@
-"""メインウィンドウ"""
+"""Main application window."""
 
 from __future__ import annotations
 
+import time
 import tkinter as tk
 from tkinter import ttk
 
+from ptyolox_garage_bootstrap import startup_log
+
 from ..config import AppConfig
 from ..i18n import set_language, tr
-from .camera_tab import CameraTab
-from .export_tab import ExportTab
-from .infer_tab import InferTab
-from .train_tab import TrainTab
 
 
 class App(tk.Tk):
@@ -21,12 +20,17 @@ class App(tk.Tk):
         self.geometry("960x720")
         self.minsize(800, 600)
 
+        startup_log("Loading configuration...", stage="loading configuration")
         self.config_mgr = AppConfig()
+        startup_log("Resolving language...", stage="resolving language")
         self._configured_language = self.config_mgr.get("default").language
         set_language(self._configured_language)
         self.title("PTYOLOX Garage")
 
+        startup_log("Building interface...", stage="building interface")
+        self._starting = True
         self._build_ui()
+        self._starting = False
 
     def _build_ui(self) -> None:
         self._build_menu()
@@ -64,7 +68,7 @@ class App(tk.Tk):
             )
 
     def _build_profile_bar(self) -> None:
-        """プロファイル選択バー"""
+        """Build the profile-selection bar."""
         bar = ttk.Frame(self, padding=(4, 2))
         bar.pack(side="top", fill="x")
 
@@ -84,6 +88,15 @@ class App(tk.Tk):
         ttk.Separator(self, orient="horizontal").pack(fill="x")
 
     def _build_notebook(self) -> None:
+        if self._starting:
+            startup_log("Loading ML dependencies...", stage="loading ML dependencies")
+        from .camera_tab import CameraTab
+        from .export_tab import ExportTab
+        from .infer_tab import InferTab
+        from .train_tab import TrainTab
+
+        if self._starting:
+            startup_log("Building tabs...", stage="building tabs")
         self._nb = ttk.Notebook(self)
         self._nb.pack(fill="both", expand=True, padx=4, pady=4)
 
@@ -187,7 +200,7 @@ class App(tk.Tk):
         self._restore_profile(selected_profile)
 
     def _show_status(self, msg: str) -> None:
-        # ウィンドウタイトルに一時的に表示
+        # Show the status temporarily in the window title.
         original = self.title()
         self.title(f"{original} — {msg}")
         self.after(2000, lambda: self.title(original))
@@ -197,6 +210,10 @@ class App(tk.Tk):
         super().destroy()
 
 
-def main() -> None:
+def main(started_at: float | None = None) -> None:
+    if started_at is None:
+        started_at = time.perf_counter()
     app = App()
+    elapsed = time.perf_counter() - started_at
+    startup_log(f"Ready ({elapsed:.1f}s)", stage="running GUI")
     app.mainloop()

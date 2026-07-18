@@ -1,13 +1,11 @@
-"""YOLOX トレーニング内部実装モジュール
+"""Internal YOLOX training implementation.
 
-このモジュールは ptyolox_garage.wrapper.YOLOX.train() から呼ばれる内部実装です。
-直接使う場合は YOLOXModelCreator クラスを使用してください。
+This module is used internally by ptyolox_garage.wrapper.YOLOX.train().
 
-順次エポック学習の仕組み:
-    epoch_schedule=[100, 200, 300] の場合:
+Sequential epoch training with epoch_schedule=[100, 200, 300]:
         Stage 0: max_epoch=100, resume=False → stage_0_epoch100_ckpt.pth
-        Stage 1: max_epoch=200, resume=True  → epoch 101 から再開
-        Stage 2: max_epoch=300, resume=True  → epoch 201 から再開
+        Stage 1: max_epoch=200, resume=True  → resume from epoch 101
+        Stage 2: max_epoch=300, resume=True  → resume from epoch 201
 """
 
 from __future__ import annotations
@@ -24,12 +22,12 @@ from typing import Any
 from .dataset import _MODEL_CONFIGS
 
 # ---------------------------------------------------------------------------
-# ログリダイレクター
+# Log redirection
 # ---------------------------------------------------------------------------
 
 
 class _LogRedirector:
-    """sys.stdout を一時的にコールバックへリダイレクトするコンテキストマネージャ"""
+    """Temporarily redirect stdout and stderr to a callback."""
 
     def __init__(self, callback: Callable[[str], None] | None) -> None:
         self._callback = callback
@@ -52,7 +50,7 @@ class _LogRedirector:
 
 
 class _CallbackStream(io.TextIOBase):
-    """write() をコールバックに転送するストリーム"""
+    """Stream that forwards write() calls to a callback."""
 
     def __init__(self, callback: Callable[[str], None]) -> None:
         super().__init__()
@@ -68,7 +66,7 @@ class _CallbackStream(io.TextIOBase):
 
 
 # ---------------------------------------------------------------------------
-# Config 生成
+# Config generation
 # ---------------------------------------------------------------------------
 
 
@@ -86,7 +84,7 @@ def _build_config(
     val_ann: str,
     output_dir: str,
 ):
-    """YoloxConfig サブクラスを生成して返す"""
+    """Create and return a configured YoloxConfig subclass."""
     try:
         from yolox.config import YoloxConfig
     except ImportError as e:
@@ -162,14 +160,14 @@ def _build_config(
 
 
 # ---------------------------------------------------------------------------
-# トレーナー
+# Trainer
 # ---------------------------------------------------------------------------
 
 
 class _YOLOXTrainer:
-    """YOLOX トレーニングを管理するクラス
+    """Manage YOLOX training.
 
-    通常は YOLOX.train() 経由で使用します。
+    This class is normally used through YOLOX.train().
     """
 
     def __init__(
@@ -209,16 +207,17 @@ class _YOLOXTrainer:
         on_stage_done: Callable[[int, int, str], None] | None = None,
         stop_event: threading.Event | None = None,
     ) -> str:
-        """順次エポック学習を実行する
+        """Run sequential epoch training.
 
         Args:
-            epoch_schedule: エポック数のリスト (例: [100, 200, 300])
-            on_log:         ログ行を受け取るコールバック
-            on_stage_done:  ステージ完了時コールバック (stage_idx, epoch, ckpt_path)
-            stop_event:     セットされると次のステージ開始前に中断
+            epoch_schedule: Epoch targets, for example ``[100, 200, 300]``.
+            on_log: Callback that receives log lines.
+            on_stage_done: Stage completion callback receiving the stage index,
+                epoch, and checkpoint path.
+            stop_event: Stop before the next stage when this event is set.
 
         Returns:
-            最終チェックポイントのパス
+            Path to the final checkpoint.
         """
         try:
             import torch
@@ -298,7 +297,7 @@ class _YOLOXTrainer:
                     trainer = Trainer(config, args)
                     trainer.train()
 
-            # スナップショット保存
+            # Save a checkpoint snapshot for this stage.
             last_ckpt = Path(train_output_dir) / exp_name / "latest_ckpt.pth"
             snap = (
                 Path(train_output_dir)
@@ -320,15 +319,16 @@ class _YOLOXTrainer:
         checkpoint_path: str | None = None,
         output_model_path: str | None = None,
     ) -> str:
-        """チェックポイントを ptyolox_garage.YOLOX が読み込める .pt に変換する
+        """Convert a checkpoint into a .pt file readable by YOLOX.
 
         Args:
-            class_names:       クラス名辞書 {0: "cat", 1: "dog"}
-            checkpoint_path:   変換元チェックポイント (省略時は自動検索)
-            output_model_path: 出力先 (省略時は output_dir/yolox_{model_size}.pt)
+            class_names: Class-name mapping such as ``{0: "cat", 1: "dog"}``.
+            checkpoint_path: Source checkpoint; discovered automatically if omitted.
+            output_model_path: Destination path; defaults to
+                ``output_dir/yolox_{model_size}.pt``.
 
         Returns:
-            保存した .pt ファイルのパス
+            Path to the saved .pt file.
         """
         import torch
 
@@ -368,11 +368,11 @@ class _YOLOXTrainer:
         return output_model_path
 
     # ------------------------------------------------------------------
-    # ユーティリティ
+    # Utilities
     # ------------------------------------------------------------------
 
     def _parse_device(self, device: str) -> tuple[int, int]:
-        """デバイス文字列から (GPU 数, デバイス ID) を返す"""
+        """Return the GPU count and device ID for a device string."""
         if device == "cpu":
             return 0, -1
         if device == "cuda":

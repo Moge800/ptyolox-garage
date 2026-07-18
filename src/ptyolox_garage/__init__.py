@@ -1,6 +1,6 @@
 """PTYOLOX Garage package.
 
-使用例::
+Example::
 
     from ptyolox_garage import YOLOX
 
@@ -14,9 +14,34 @@
 
 from __future__ import annotations
 
-from .config import AppConfig, ProfileParams
-from .wrapper import YOLOX, YOLOXBoxes, YOLOXResult
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from .config import AppConfig, ProfileParams
+    from .wrapper import YOLOX, YOLOXBoxes, YOLOXResult
 
 __all__ = ["YOLOX", "YOLOXBoxes", "YOLOXResult", "AppConfig", "ProfileParams"]
 
 __version__ = "0.1.0"
+
+
+def __getattr__(name: str) -> Any:
+    """Load public exports only when they are first accessed."""
+    if name in {"AppConfig", "ProfileParams"}:
+        from . import config
+
+        value = getattr(config, name)
+    elif name in {"YOLOX", "YOLOXBoxes", "YOLOXResult"}:
+        from . import wrapper
+
+        value = getattr(wrapper, name)
+    else:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+    globals()[name] = value
+    return value
+
+
+def __dir__() -> list[str]:
+    """Include lazy public exports in interactive attribute listings."""
+    return sorted(set(globals()) | set(__all__))

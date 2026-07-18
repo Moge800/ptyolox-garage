@@ -53,14 +53,14 @@ dev = [
 ]
 
 [project.scripts]
-ptyolox-garage = "ptyolox_garage.gui.app:main"
+ptyolox-garage = "ptyolox_garage_bootstrap:main"
 
 [build-system]
 requires = ["hatchling>=1.26"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/ptyolox_garage"]
+packages = ["src/ptyolox_garage", "src/ptyolox_garage_bootstrap.py"]
 
 # ---------------------------------------------------------------------------
 # Ruff

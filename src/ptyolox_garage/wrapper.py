@@ -1,16 +1,15 @@
 """PTYOLOX Garage Module
 
-ultralytics YOLO の API と互換性のある YOLOX ラッパーモジュールです。
-ライセンス問題のため ultralytics から YOLOX へ移行するために使用します。
+This module provides a YOLOX wrapper compatible with the Ultralytics YOLO API.
 
-使用例:
+Example:
     >>> from ptyolox_garage import YOLOX
 
-    # 新規学習
+    # Train a new model.
     >>> model = YOLOX("l")
     >>> model.train(data="data.yaml", epochs=[100, 200, 300], device="cuda:0", batch=16)
 
-    # 学習済みモデル読み込み
+    # Load a trained model.
     >>> model = YOLOX("yolox_l.pt")
     >>> model.fuse()
     >>> results = model.predict("image.jpg", conf=0.3, device="cuda:0")
@@ -19,10 +18,10 @@ ultralytics YOLO の API と互換性のある YOLOX ラッパーモジュール
     ...     conf   = float(box.conf[0].item())
     ...     x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
 
-    # ONNX エクスポート
+    # Export to ONNX.
     >>> model.export(format="onnx")
 
-モデル保存形式 (torch.save):
+Model storage format (torch.save):
     torch.save(
         {"model": model, "names": {0: "cat", 1: "dog"}, "nc": 2, "input_size": [640, 640]},
         "my_model.pt",
@@ -47,12 +46,12 @@ from ._trainer import _YOLOXTrainer
 from .dataset import _MODEL_CONFIGS, DatasetPreparer
 
 # ---------------------------------------------------------------------------
-# モデルサイズ正規化
+# Model-size normalization
 # ---------------------------------------------------------------------------
 
 
 def _normalize_model_size(s: str) -> str:
-    """'yolox_l', 'yolox-l', 'l' などを 'l' に正規化する"""
+    """Normalize model-size aliases such as 'yolox_l' and 'yolox-l' to 'l'."""
     normalized = s.lower().removeprefix("yolox_").removeprefix("yolox-")
     if normalized not in _MODEL_CONFIGS:
         raise ValueError(
@@ -63,17 +62,17 @@ def _normalize_model_size(s: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# 結果オブジェクト (ultralytics Boxes / Results 互換)
+# Result objects compatible with Ultralytics Boxes and Results
 # ---------------------------------------------------------------------------
 
 
 class _YOLOXBox:
-    """個別バウンディングボックス (ultralytics box オブジェクト互換)
+    """Single bounding box compatible with an Ultralytics box object.
 
     Attributes:
-        xyxy: shape [1, 4] の Tensor → box.xyxy[0] で [4] Tensor
-        conf: shape [1] の Tensor   → box.conf[0].item() で float
-        cls:  shape [1] の Tensor   → box.cls[0].item()  で float
+        xyxy: Tensor with shape [1, 4]; ``box.xyxy[0]`` has shape [4].
+        conf: Tensor with shape [1]; ``box.conf[0].item()`` returns a float.
+        cls: Tensor with shape [1]; ``box.cls[0].item()`` returns a float.
     """
 
     __slots__ = ("xyxy", "conf", "cls")
@@ -90,12 +89,12 @@ class _YOLOXBox:
 
 
 class YOLOXBoxes:
-    """バウンディングボックスのコレクション (ultralytics Boxes 互換)
+    """Bounding-box collection compatible with Ultralytics Boxes.
 
     Attributes:
-        xyxy: shape [N, 4] の Tensor
-        conf: shape [N]    の Tensor
-        cls:  shape [N]    の Tensor
+        xyxy: Tensor with shape [N, 4].
+        conf: Tensor with shape [N].
+        cls: Tensor with shape [N].
     """
 
     def __init__(
@@ -121,13 +120,13 @@ class YOLOXBoxes:
 
 
 class YOLOXResult:
-    """推論結果 (ultralytics Results 互換)
+    """Inference result compatible with Ultralytics Results.
 
     Attributes:
-        boxes:      YOLOXBoxes オブジェクト
-        names:      クラス名辞書 {int: str}
-        orig_shape: 元画像サイズ (height, width)
-        orig_img:   元画像 np.ndarray (plot() 用)
+        boxes: YOLOXBoxes instance.
+        names: Class-name mapping ``{int: str}``.
+        orig_shape: Original image size as ``(height, width)``.
+        orig_img: Original image array used by ``plot()``.
     """
 
     def __init__(
@@ -144,7 +143,7 @@ class YOLOXResult:
         self.results_dict: dict[str, float] = {}
 
     def plot(self, orig_img: np.ndarray | None = None) -> np.ndarray:
-        """検出結果を画像に描画して返す (ultralytics Result.plot() 互換)"""
+        """Draw detections and return an image, matching ``Result.plot()``."""
         img = orig_img if orig_img is not None else self.orig_img
         if img is None:
             h, w = self.orig_shape
@@ -175,7 +174,7 @@ class YOLOXResult:
 
 
 # ---------------------------------------------------------------------------
-# 前処理・後処理ユーティリティ
+# Preprocessing and postprocessing utilities
 # ---------------------------------------------------------------------------
 
 
@@ -184,7 +183,7 @@ def _letterbox(
     new_shape: tuple[int, int],
     fill_value: int = 114,
 ) -> tuple[np.ndarray, float]:
-    """レターボックスリサイズ (アスペクト比保持)"""
+    """Resize with letterboxing while preserving the aspect ratio."""
     h, w = image.shape[:2]
     nh, nw = new_shape
     r = min(nh / h, nw / w)
@@ -201,7 +200,7 @@ def _nms_fallback(
     scores: torch.Tensor,
     iou_threshold: float,
 ) -> torch.Tensor:
-    """torchvision 非依存の NMS 実装"""
+    """Implement NMS without depending on torchvision."""
     if boxes.numel() == 0:
         return torch.zeros(0, dtype=torch.long)
 
@@ -232,7 +231,7 @@ def _apply_nms(
     scores: torch.Tensor,
     iou_threshold: float,
 ) -> torch.Tensor:
-    """NMS (torchvision があれば使用、なければフォールバック)"""
+    """Run NMS with torchvision when available, otherwise use the fallback."""
     try:
         from torchvision.ops import nms as tv_nms
 
@@ -249,7 +248,7 @@ def _postprocess(
     conf_thre: float,
     iou_thre: float,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """YOLOX 推論出力のデコード・NMS"""
+    """Decode YOLOX inference output and apply NMS."""
     pred = outputs[0]  # [N, C+5]
 
     cx, cy, bw, bh = pred[:, 0], pred[:, 1], pred[:, 2], pred[:, 3]
@@ -280,32 +279,32 @@ def _postprocess(
 
 
 # ---------------------------------------------------------------------------
-# メインラッパークラス
+# Main wrapper class
 # ---------------------------------------------------------------------------
 
 
 class YOLOX:
-    """YOLOX モデルラッパー (ultralytics YOLO API 互換)
+    """YOLOX model wrapper compatible with the Ultralytics YOLO API.
 
-    使用例::
+    Example::
 
-        # 新規学習
+        # Train a new model.
         model = YOLOX("l")
         model.train(data="data.yaml", epochs=[100, 200, 300], device="cuda:0")
 
-        # 学習済みモデル読み込み
+        # Load a trained model.
         model = YOLOX("yolox_l.pt")
         results = model.predict("image.jpg", conf=0.3)
         model.export(format="onnx")
     """
 
     def __init__(self, model: str, verbose: bool = True) -> None:
-        """初期化
+        """Initialize the wrapper.
 
         Args:
-            model:   モデルサイズ文字列 ("nano"/"tiny"/"s"/"m"/"l"/"x" / "yolox_l" など)
-                     または学習済みモデルパス (.pt ファイル)
-            verbose: 詳細ログ出力
+            model: Model-size string such as ``"nano"``, ``"l"``, or
+                ``"yolox_l"``, or a path to a trained .pt model.
+            verbose: Whether to emit detailed logs.
         """
         self._verbose = verbose
         self.model: nn.Module | None = None
@@ -326,7 +325,7 @@ class YOLOX:
                 print(f"[YOLOX] モデルサイズ: {self._model_size} (学習前)")
 
     # ------------------------------------------------------------------
-    # 学習
+    # Training
     # ------------------------------------------------------------------
 
     def train(
@@ -343,36 +342,36 @@ class YOLOX:
         on_stage_done: Callable[[int, int, str], None] | None = None,
         **kwargs: Any,
     ) -> YOLOX:
-        """学習を実行する
+        """Train the model.
 
         Args:
-            data:               data.yaml パス (Label Studio COCO エクスポートを指定)
-            epochs:             学習エポック数 (整数 or リスト [100, 200, 300])
-            batch:              バッチサイズ
-            device:             デバイス ('cpu' / 'cuda' / 'cuda:0')
-            imgsz:              入力画像サイズ
-            workers:            データローダーワーカー数
-            val_split:          検証データ割合 (省略時は data.yaml の値を使用)
-            pretrained_weights: fine-tuning 用の重みファイルパス (.pt / .pth)。
-                                省略時は YOLOX("model.pt") で読み込んだモデルを自動使用。
-            on_log:             ログコールバック (GUI 連携用)
-            on_stage_done:      ステージ完了コールバック (GUI 連携用)
+            data: Path to data.yaml for a Label Studio COCO export.
+            epochs: Epoch count or sequential targets such as ``[100, 200, 300]``.
+            batch: Batch size.
+            device: Device string: ``'cpu'``, ``'cuda'``, or ``'cuda:0'``.
+            imgsz: Input image size.
+            workers: Number of data-loader workers.
+            val_split: Validation fraction; defaults to the data.yaml value.
+            pretrained_weights: .pt or .pth weights for fine-tuning. When omitted,
+                use the model previously loaded with ``YOLOX("model.pt")``.
+            on_log: Log callback used by the GUI.
+            on_stage_done: Stage-completion callback used by the GUI.
 
         Returns:
-            self (メソッドチェーン可)
+            This instance, allowing method chaining.
         """
-        # fine-tuning: .pt から読み込んだ場合は model_size を自動推定
+        # Infer model_size when fine-tuning from a loaded .pt file.
         if self._model_size is None and self._model_path is not None:
             self._model_size = self._infer_model_size_from_path(self._model_path)
 
         if self._model_size is None:
             raise RuntimeError("モデルサイズが設定されていません。")
 
-        # pretrained_weights 未指定かつ fine-tuning の場合は自動設定
+        # Reuse the loaded model for fine-tuning when weights were not specified.
         if pretrained_weights is None and self._model_path is not None:
             pretrained_weights = self._model_path
 
-        # data.yaml 読み込み
+        # Load data.yaml.
         data_cfg = self._load_data_config(data)
         output_dir = data_cfg.get("output_dir", "./yolox_work")
         effective_val_split = (
@@ -384,7 +383,7 @@ class YOLOX:
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
 
-        # epoch_schedule の正規化
+        # Normalize the epoch schedule.
         if isinstance(epochs, int):
             epoch_schedule = [epochs]
         else:
@@ -395,7 +394,7 @@ class YOLOX:
                 f"[YOLOX] 学習開始: model={self._model_size}, epochs={epoch_schedule}, device={device}"
             )
 
-        # 1. データセット整備
+        # 1. Prepare the dataset.
         if on_log:
             on_log("[YOLOX] データセット整備中...")
         preparer = DatasetPreparer(
@@ -406,12 +405,12 @@ class YOLOX:
         )
         class_names, num_classes = preparer.prepare()
 
-        # クラス名を保存 (package_model で使用)
+        # Save class names for package_model().
         names_path = output_path / "class_names.json"
         with open(names_path, "w", encoding="utf-8") as f:
             json.dump(class_names, f, ensure_ascii=False, indent=2)
 
-        # 2. 学習
+        # 2. Train the model.
         trainer = _YOLOXTrainer(
             model_size=self._model_size,
             num_classes=num_classes,
@@ -430,7 +429,7 @@ class YOLOX:
             on_stage_done=on_stage_done,
         )
 
-        # 3. モデルをパッケージ化して self.model に反映
+        # 3. Package the model and assign it to self.model.
         if on_log:
             on_log("[YOLOX] モデルをパッケージ化中...")
         model_path = trainer.package_model(
@@ -443,15 +442,15 @@ class YOLOX:
         return self
 
     # ------------------------------------------------------------------
-    # モデルサイズ推定
+    # Model-size inference
     # ------------------------------------------------------------------
 
     @staticmethod
     def _infer_model_size_from_path(model_path: str) -> str:
-        """学習済み .pt から model_size を推定する。
+        """Infer model_size from a trained .pt file.
 
-        depth/width が保存されていればそこから逆引きし、
-        なければファイル名に含まれるサイズ文字列で判定する。
+        Use saved depth and width values when available, otherwise inspect the
+        model filename for a size token.
         """
         ckpt = torch.load(model_path, map_location="cpu", weights_only=False)
         if isinstance(ckpt, dict):
@@ -463,7 +462,7 @@ class YOLOX:
                     if cfg["depth"] == depth and cfg["width"] == width:
                         return size
 
-        # ファイル名から推定
+        # Infer from the filename.
         stem = Path(model_path).stem.lower()
         for size in _MODEL_CONFIGS:
             if size in stem:
@@ -475,7 +474,7 @@ class YOLOX:
         )
 
     # ------------------------------------------------------------------
-    # モデル読み込み
+    # Model loading
     # ------------------------------------------------------------------
 
     def _load_checkpoint(self, model_path: str, verbose: bool) -> None:
@@ -560,11 +559,11 @@ class YOLOX:
             self._class_names = {i: str(i) for i in range(self._num_classes)}
 
     # ------------------------------------------------------------------
-    # 推論
+    # Inference
     # ------------------------------------------------------------------
 
     def fuse(self) -> YOLOX:
-        """モデルを最適化 (BatchNorm 融合など)"""
+        """Optimize the model, including BatchNorm fusion."""
         if self.model is not None:
             try:
                 for m in self.model.modules():
@@ -584,17 +583,17 @@ class YOLOX:
         save: bool = False,
         **kwargs: Any,
     ) -> list[YOLOXResult]:
-        """推論を実行
+        """Run inference.
 
         Args:
-            source:  画像パス、np.ndarray、またはそれらのリスト
-            conf:    信頼度閾値
-            iou:     NMS IOU 閾値
-            device:  使用デバイス ('cpu', 'cuda', 'cuda:0' など)
-            verbose: 処理時間を表示
+            source: Image path, NumPy array, or a list of either.
+            conf: Confidence threshold.
+            iou: NMS IoU threshold.
+            device: Device such as ``'cpu'``, ``'cuda'``, or ``'cuda:0'``.
+            verbose: Whether to report processing time.
 
         Returns:
-            YOLOXResult のリスト (入力画像 1 枚につき 1 要素)
+            One YOLOXResult per input image.
         """
         if self.model is None:
             raise RuntimeError(
@@ -676,11 +675,11 @@ class YOLOX:
         raise ValueError(f"未対応の入力タイプ: {type(source)}")
 
     # ------------------------------------------------------------------
-    # 保存・エクスポート
+    # Saving and export
     # ------------------------------------------------------------------
 
     def save(self, path: str) -> None:
-        """モデルを保存"""
+        """Save the model."""
         if self.model is None:
             raise RuntimeError("モデルが読み込まれていません")
         torch.save(
@@ -696,13 +695,13 @@ class YOLOX:
             print(f"[YOLOX] モデルを保存しました: {path}")
 
     def export(self, format: str = "onnx", **kwargs: Any) -> str:
-        """モデルをエクスポート
+        """Export the model.
 
         Args:
-            format: エクスポート形式 (現在は 'onnx' のみ対応)
+            format: Export format; currently only ``'onnx'`` is supported.
 
         Returns:
-            エクスポートされたファイルパス
+            Path to the exported file.
         """
         if self.model is None:
             raise RuntimeError("モデルが読み込まれていません")
@@ -740,7 +739,7 @@ class YOLOX:
         return output_path
 
     # ------------------------------------------------------------------
-    # data.yaml 読み込み
+    # data.yaml loading
     # ------------------------------------------------------------------
 
     @staticmethod
@@ -760,7 +759,7 @@ class YOLOX:
                     "オプション: output_dir, val_split"
                 )
 
-        # 相対パスを data.yaml の場所を基準に解決
+        # Resolve relative paths against the location of data.yaml.
         base = path.parent
         for key in ("coco_json", "images_dir", "output_dir"):
             if key in cfg:

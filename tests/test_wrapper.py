@@ -1,5 +1,7 @@
-"""YOLOX wrapper のテスト (yolox パッケージ不要な部分のみ)"""
+"""Tests for wrapper behavior that does not require the yolox package."""
 
+import subprocess
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -65,9 +67,9 @@ class TestLetterbox:
         assert ratio == pytest.approx(6.4)
 
     def test_fill_value(self) -> None:
-        img = np.zeros((100, 200, 3), dtype=np.uint8)  # 横長
+        img = np.zeros((100, 200, 3), dtype=np.uint8)  # Landscape image
         result, _ = _letterbox(img, (640, 640), fill_value=114)
-        # 左上配置なので右下がパディング領域
+        # Top-left placement leaves padding in the bottom-right corner.
         assert result[-1, -1, 0] == 114
 
 
@@ -90,7 +92,7 @@ class TestNmsFallback:
         assert keep.tolist() == [0]
 
     def test_overlapping_boxes_suppressed(self) -> None:
-        # ほぼ同じ位置に 2 つのボックス → 高スコアのみ残る
+        # Two nearly overlapping boxes leave only the higher-scoring box.
         boxes = torch.tensor(
             [
                 [0.0, 0.0, 10.0, 10.0],
@@ -188,7 +190,7 @@ class TestYOLOXResultPlot:
 
 
 # ---------------------------------------------------------------------------
-# YOLOX.__init__ (モデルサイズ文字列)
+# YOLOX.__init__ with model-size strings
 # ---------------------------------------------------------------------------
 
 
@@ -217,7 +219,7 @@ class TestYOLOXInit:
 
 
 class _DummyModel(nn.Module):
-    """torch.save でpickle可能なモジュールレベルのダミーモデル"""
+    """Module-level dummy model that torch.save can pickle."""
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         b = x.shape[0]
@@ -225,13 +227,13 @@ class _DummyModel(nn.Module):
 
 
 # ---------------------------------------------------------------------------
-# YOLOX.save() / load (モックモデル)
+# YOLOX.save() and load() with a mock model
 # ---------------------------------------------------------------------------
 
 
 class TestYOLOXSaveLoad:
     def _make_mock_pt(self, tmp_path: Path) -> str:
-        """最小限の .pt ファイルを作成する"""
+        """Create a minimal .pt file."""
         model = _DummyModel()
         path = str(tmp_path / "dummy.pt")
         torch.save(
@@ -264,20 +266,128 @@ class TestYOLOXSaveLoad:
 
 
 # ---------------------------------------------------------------------------
-# GUI エントリポイント
+# GUI entry point
 # ---------------------------------------------------------------------------
 
 
 class TestGUIEntryPoint:
     def test_gui_main_is_importable(self) -> None:
-        """ptyolox-garage スクリプトのエントリポイントがインポートできる"""
-        from ptyolox_garage.gui.app import main as gui_main
+        """Import the ptyolox-garage script entry point."""
+        from ptyolox_garage_bootstrap import main as gui_main
 
         assert callable(gui_main)
 
-    def test_root_main_delegates_to_gui(self) -> None:
-        """main.py が ptyolox_garage.gui.app.main を呼び出す"""
+    def test_bootstrap_import_is_lightweight(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import sys; import ptyolox_garage_bootstrap; "
+                "assert 'ptyolox_garage' not in sys.modules",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        assert result.returncode == 0, result.stderr
+
+    def test_gui_import_does_not_load_ml_dependencies(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import sys; import ptyolox_garage.gui.app; "
+                "assert 'ptyolox_garage.wrapper' not in sys.modules; "
+                "assert 'torch' not in sys.modules; "
+                "assert 'cv2' not in sys.modules",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        assert result.returncode == 0, result.stderr
+
+    def test_lazy_public_yolox_export(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "from ptyolox_garage import YOLOX; "
+                "from ptyolox_garage.wrapper import YOLOX as DirectYOLOX; "
+                "assert YOLOX is DirectYOLOX",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        assert result.returncode == 0, result.stderr
+
+    def test_bootstrap_logs_before_delegating(self, capsys, monkeypatch) -> None:
+        import ptyolox_garage_bootstrap as bootstrap
+        from ptyolox_garage.gui import app
+
+        delegated = []
+        monkeypatch.setattr(app, "main", lambda *, started_at: delegated.append(started_at))
+        monkeypatch.setattr(bootstrap.time, "perf_counter", lambda: 12.5)
+
+        bootstrap.main()
+
+        assert delegated == [12.5]
+        assert capsys.readouterr().out.splitlines() == [
+            "[PTYOLOX Garage] Starting...",
+            "[PTYOLOX Garage] Loading GUI components...",
+        ]
+
+    def test_bootstrap_reports_failed_stage(self, capsys, monkeypatch) -> None:
+        import ptyolox_garage_bootstrap as bootstrap
+        from ptyolox_garage.gui import app
+
+        def fail(*, started_at: float) -> None:
+            bootstrap.startup_log(
+                "Loading ML dependencies...", stage="loading ML dependencies"
+            )
+            raise RuntimeError("missing dependency")
+
+        monkeypatch.setattr(app, "main", fail)
+
+        with pytest.raises(RuntimeError, match="missing dependency"):
+            bootstrap.main()
+
+        captured = capsys.readouterr()
+        assert "Loading ML dependencies..." in captured.out
+        assert captured.err.strip() == (
+            "[PTYOLOX Garage] Failed while loading ML dependencies: missing dependency"
+        )
+
+    def test_gui_main_reports_ready_time(self, capsys, monkeypatch) -> None:
+        from ptyolox_garage.gui import app
+
+        mainloop_calls = []
+
+        class FakeApp:
+            def mainloop(self) -> None:
+                mainloop_calls.append(True)
+
+        monkeypatch.setattr(app, "App", FakeApp)
+        monkeypatch.setattr(app.time, "perf_counter", lambda: 14.2)
+
+        app.main(started_at=10.0)
+
+        assert mainloop_calls == [True]
+        assert capsys.readouterr().out.strip() == "[PTYOLOX Garage] Ready (4.2s)"
+
+    def test_root_main_delegates_to_bootstrap(self, monkeypatch) -> None:
+        """Have main.py call the lightweight bootstrap entry point."""
         import importlib
 
         mod = importlib.import_module("main")
-        assert callable(mod.main)
+        import ptyolox_garage_bootstrap as bootstrap
+
+        called = []
+        monkeypatch.setattr(bootstrap, "main", lambda: called.append(True))
+        mod.main()
+
+        assert called == [True]

@@ -1,4 +1,4 @@
-"""学習タブ"""
+"""Training tab."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from ..wrapper import YOLOX
 
 
 class TrainTab(ttk.Frame):
-    """学習タブ"""
+    """Training tab."""
 
     def __init__(
         self,
@@ -37,11 +37,11 @@ class TrainTab(ttk.Frame):
         self.load_profile(profile_var.get())
 
     # ------------------------------------------------------------------
-    # UI 構築
+    # UI construction
     # ------------------------------------------------------------------
 
     def _build(self) -> None:
-        # 左ペイン: 設定
+        # Left pane: settings
         left = ttk.LabelFrame(self, text=tr("学習設定", "Training Settings"), padding=8)
         left.pack(side="left", fill="y", padx=(8, 4), pady=8)
 
@@ -55,7 +55,7 @@ class TrainTab(ttk.Frame):
             filetypes=[("YAML", "*.yaml *.yml"), (tr("全ファイル", "All Files"), "*.*")],
         )
 
-        # モデルサイズ
+        # Model size
         ttk.Label(left, text=tr("モデルサイズ:", "Model size:")).pack(anchor="w", pady=(6, 0))
         self._model_var = tk.StringVar(value="l")
         ttk.Combobox(
@@ -66,35 +66,35 @@ class TrainTab(ttk.Frame):
             width=10,
         ).pack(anchor="w")
 
-        # エポックスケジュール
+        # Epoch schedule
         ttk.Label(left, text=tr("エポック (例: 100,200,300):", "Epochs (e.g. 100,200,300):")).pack(
             anchor="w", pady=(6, 0)
         )
         self._epochs_var = tk.StringVar(value="100,200,300")
         ttk.Entry(left, textvariable=self._epochs_var, width=20).pack(anchor="w")
 
-        # バッチサイズ
+        # Batch size
         ttk.Label(left, text=tr("バッチサイズ:", "Batch size:")).pack(anchor="w", pady=(6, 0))
         self._batch_var = tk.IntVar(value=16)
         ttk.Spinbox(left, from_=1, to=256, textvariable=self._batch_var, width=8).pack(
             anchor="w"
         )
 
-        # 入力サイズ
+        # Input size
         ttk.Label(left, text=tr("入力サイズ (imgsz):", "Input size (imgsz):")).pack(anchor="w", pady=(6, 0))
         self._imgsz_var = tk.IntVar(value=640)
         ttk.Spinbox(
             left, from_=32, to=1920, increment=32, textvariable=self._imgsz_var, width=8
         ).pack(anchor="w")
 
-        # ワーカー数
+        # Worker count
         ttk.Label(left, text=tr("ワーカー数:", "Workers:")).pack(anchor="w", pady=(6, 0))
         self._workers_var = tk.IntVar(value=4)
         ttk.Spinbox(left, from_=0, to=16, textvariable=self._workers_var, width=8).pack(
             anchor="w"
         )
 
-        # val 分割比
+        # Validation split
         ttk.Label(left, text=tr("val 分割比:", "Validation split:")).pack(anchor="w", pady=(6, 0))
         self._val_split_var = tk.DoubleVar(value=0.2)
         val_frame = ttk.Frame(left)
@@ -111,7 +111,7 @@ class TrainTab(ttk.Frame):
         self._val_label = ttk.Label(val_frame, text="20%", width=5)
         self._val_label.pack(side="left")
 
-        # デバイス
+        # Device
         ttk.Separator(left, orient="horizontal").pack(fill="x", pady=8)
         ttk.Label(left, text=tr("デバイス:", "Device:")).pack(anchor="w")
         self._device_var = tk.StringVar(value="cpu")
@@ -127,7 +127,7 @@ class TrainTab(ttk.Frame):
 
         self._check_gpu()
 
-        # ボタン
+        # Controls
         ttk.Separator(left, orient="horizontal").pack(fill="x", pady=8)
         btn_frame = ttk.Frame(left)
         btn_frame.pack(fill="x")
@@ -138,11 +138,11 @@ class TrainTab(ttk.Frame):
         )
         self._stop_btn.pack(side="left", expand=True, fill="x", padx=(2, 0))
 
-        # 右ペイン: 進捗 + ログ
+        # Right pane: progress and logs
         right = ttk.Frame(self, padding=(4, 8, 8, 8))
         right.pack(side="left", fill="both", expand=True)
 
-        # ステージ進捗
+        # Stage progress
         prog_frame = ttk.Frame(right)
         prog_frame.pack(fill="x")
         self._stage_label = ttk.Label(prog_frame, text=tr("待機中", "Idle"))
@@ -150,7 +150,7 @@ class TrainTab(ttk.Frame):
         self._progress = ttk.Progressbar(prog_frame, length=200, mode="determinate")
         self._progress.pack(side="right", fill="x", expand=True, padx=(8, 0))
 
-        # ログ
+        # Logs
         ttk.Label(right, text=tr("ログ:", "Log:")).pack(anchor="w", pady=(8, 0))
         self._log = scrolledtext.ScrolledText(
             right, state="disabled", wrap="word", font=("Consolas", 9), height=30
@@ -158,7 +158,7 @@ class TrainTab(ttk.Frame):
         self._log.pack(fill="both", expand=True)
 
     # ------------------------------------------------------------------
-    # プロファイル連携
+    # Profile integration
     # ------------------------------------------------------------------
 
     def load_profile(self, profile: str) -> None:
@@ -189,7 +189,7 @@ class TrainTab(ttk.Frame):
         return self._running
 
     # ------------------------------------------------------------------
-    # 学習制御
+    # Training controls
     # ------------------------------------------------------------------
 
     def _start(self) -> None:
@@ -246,7 +246,7 @@ class TrainTab(ttk.Frame):
             self._log_queue.put(tr(f"[エラー] {e}", f"[Error] {e}"))
             self._train_succeeded = False
         finally:
-            self._log_queue.put(None)  # 終了シグナル
+            self._log_queue.put(None)  # Completion sentinel
 
     def _on_stage_done(self, stage_idx: int, epoch: int, ckpt_path: str) -> None:
         total = self._progress["maximum"]
@@ -263,7 +263,7 @@ class TrainTab(ttk.Frame):
                 line = self._log_queue.get_nowait()
                 if line is None:
                     self._set_running(False)
-                    # ステージ進捗を最終状態に更新
+                    # Update stage progress to its final state.
                     self._progress["value"] = self._progress["maximum"]
                     self._stage_label.config(text=tr("完了", "Done"))
                     if self._train_succeeded:
@@ -272,7 +272,7 @@ class TrainTab(ttk.Frame):
                         beep_lite.ng()
                     return
                 self._append_log(line)
-                # ステージ完了行からプログレスを進める
+                # Advance progress when a stage-completion line arrives.
                 if line.startswith("[Stage "):
                     try:
                         done = int(line.split("/")[0].split()[-1])
@@ -286,7 +286,7 @@ class TrainTab(ttk.Frame):
         self.after(100, self._poll_log)
 
     # ------------------------------------------------------------------
-    # ユーティリティ
+    # Utilities
     # ------------------------------------------------------------------
 
     def _parse_epochs(self, text: str) -> list[int]:
