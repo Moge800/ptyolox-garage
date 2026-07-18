@@ -95,8 +95,8 @@ Apache License 2.0 — See [LICENSE](../../LICENSE) for details.
 
 ## Release to PyPI
 
-PyPI publication uses Trusted Publishing and starts automatically when a
-GitHub Release is published. Configure the PyPI publisher with these values:
+PyPI publication uses Trusted Publishing. Configure the PyPI publisher with
+these values:
 
 | Setting | Value |
 |---|---|
@@ -105,7 +105,12 @@ GitHub Release is published. Configure the PyPI publisher with these values:
 | Workflow | `publish.yml` |
 | Environment | `pypi` |
 
-Before publishing, update `project.version` in `pyproject.toml`, create a tag
-named `v<version>`, and publish a GitHub Release for that tag. The workflow
-checks the tag, runs the tests and Ruff, builds the wheel and sdist, publishes
-both to PyPI, and attaches them to the GitHub Release.
+Update `project.version` in `pyproject.toml` before publishing. You can then
+either publish a GitHub Release from a `v<version>` tag, or run the `publish`
+workflow manually from `main`. Release tags must match `v<project.version>`.
+Manual runs publish the version currently in `main`; existing PyPI files are
+skipped. A GitHub Release fails when files for its version already exist on
+PyPI, preventing release assets from diverging from the published package. The
+workflow runs tests and Ruff for the exact release tag or `main` commit, then
+builds the wheel and sdist, publishes both to PyPI, and attaches them to a
+GitHub Release when one triggered the run.

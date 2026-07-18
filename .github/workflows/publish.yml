@@ -4,9 +4,10 @@ on:
   release:
     types:
       - published
+  workflow_dispatch:
 
 concurrency:
-  group: publish-${{ github.event.release.tag_name }}
+  group: pypi-publish
   cancel-in-progress: false
 
 jobs:
@@ -16,10 +17,13 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout release tag
+      - name: Checkout release tag or selected branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: >-
+            ${{ github.event_name == 'release'
+                && github.event.release.tag_name
+                || github.event.repository.default_branch }}
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v6
@@ -44,10 +48,13 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout release tag
+      - name: Checkout release tag or selected branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: >-
+            ${{ github.event_name == 'release'
+                && github.event.release.tag_name
+                || github.event.repository.default_branch }}
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v6
@@ -58,6 +65,7 @@ jobs:
           python-version: "3.12"
 
       - name: Check tag matches package version
+        if: github.event_name == 'release'
         shell: bash
         env:
           TAG_NAME: ${{ github.event.release.tag_name }}
@@ -85,6 +93,7 @@ jobs:
     needs:
       - test
       - build
+    if: github.event_name == 'release' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -101,11 +110,14 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: ${{ github.event_name != 'release' }}
 
   upload-release-assets:
     needs:
       - build
       - publish
+    if: github.event_name == 'release'
     runs-on: ubuntu-latest
     permissions:
       contents: write
