@@ -1,10 +1,10 @@
-"""YOLOX Wrapper Module
+"""PTYOLOX Garage Module
 
 ultralytics YOLO の API と互換性のある YOLOX ラッパーモジュールです。
 ライセンス問題のため ultralytics から YOLOX へ移行するために使用します。
 
 使用例:
-    >>> from yolox_wrapper import YOLOX
+    >>> from ptyolox_garage import YOLOX
 
     # 新規学習
     >>> model = YOLOX("l")
@@ -342,7 +342,7 @@ class YOLOX:
         on_log: Callable[[str], None] | None = None,
         on_stage_done: Callable[[int, int, str], None] | None = None,
         **kwargs: Any,
-    ) -> "YOLOX":
+    ) -> YOLOX:
         """学習を実行する
 
         Args:
@@ -563,7 +563,7 @@ class YOLOX:
     # 推論
     # ------------------------------------------------------------------
 
-    def fuse(self) -> "YOLOX":
+    def fuse(self) -> YOLOX:
         """モデルを最適化 (BatchNorm 融合など)"""
         if self.model is not None:
             try:

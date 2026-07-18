@@ -1,6 +1,6 @@
 # API Reference — AppConfig / ProfileParams (config)
 
-The `yolox_wrapper.config` module manages application settings through `config.ini`.
+The `ptyolox_garage.config` module manages application settings through `config.ini`.
 
 ---
 
@@ -126,7 +126,7 @@ Removes the specified profile. Cannot remove `"default"`, returns `False`.
 ## Usage Example
 
 ```python
-from yolox_wrapper import AppConfig, ProfileParams
+from ptyolox_garage import AppConfig, ProfileParams
 
 # Load
 config = AppConfig()

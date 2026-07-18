@@ -1,12 +1,16 @@
 # Configuration (`config.ini`)
 
-YOLOX Wrapper manages application settings through a `config.ini` file.  
+PTYOLOX Garage manages application settings through a `config.ini` file.
 You can define multiple profiles and switch between them using the GUI dropdown.
+
+The file is stored in the operating system's user configuration directory. On
+Windows, the default path is `%APPDATA%\ptyolox-garage\config.ini`. The
+repository's `config.example.ini` is a reference file only.
 
 ## File Format
 
 ```ini
-; YOLOX Wrapper configuration file
+; PTYOLOX Garage configuration file
 
 [default]
 device = cpu
@@ -18,6 +22,7 @@ val_split = 0.2
 output_dir =
 conf = 0.25
 iou = 0.45
+language = auto
 
 [factory_pc]
 device = cuda:0
@@ -44,6 +49,7 @@ iou = 0.45
 | `output_dir` | str | `""` | Output directory (empty uses default) |
 | `conf` | float | `0.25` | Inference confidence threshold |
 | `iou` | float | `0.45` | NMS IoU threshold |
+| `language` | str | `auto` | GUI language: `auto`, `ja`, or `en` |
 
 ## Profiles
 
@@ -55,7 +61,7 @@ iou = 0.45
 ## Using from Code
 
 ```python
-from yolox_wrapper import AppConfig, ProfileParams
+from ptyolox_garage import AppConfig, ProfileParams
 
 config = AppConfig()          # Load config.ini
 config.load()

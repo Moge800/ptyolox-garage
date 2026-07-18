@@ -1,71 +1,94 @@
-# YOLOX Wrapper
+# PTYOLOX Garage
 
-A Python toolkit for training, inference, and ONNX export of YOLOX object detection models, powered by [pixeltable-yolox](https://github.com/pixeltable/pixeltable-yolox).  
-Provides an ultralytics YOLO-like API and a tkinter-based GUI.
+[日本語](https://github.com/Moge800/ptyolox-garage/blob/main/README_JP.md)
+
+PTYOLOX Garage is a practical desktop and Python toolkit for training, testing, and exporting object-detection models with [Pixeltable YOLOX](https://github.com/pixeltable/pixeltable-yolox). It provides an Ultralytics-style API and a bilingual tkinter GUI for repeatable local and offline workflows.
 
 ## Features
 
-- **Training** — Train directly from Label Studio COCO exports with staged epoch scheduling
-- **Inference** — Run predictions on image files, NumPy arrays, or directories
-- **Real-time Inference** — Live object detection via USB camera (GUI)
-- **ONNX Export** — Convert `.pt` models to ONNX format
-- **Config Profiles** — Manage multiple environment settings with `config.ini`
-- **GUI** — Four-tab interface for training, inference, camera, and export
+- Prepare Label Studio COCO exports for training
+- Train YOLOX nano, tiny, s, m, l, and x models with staged epoch schedules
+- Run inference on images, NumPy arrays, directories, and USB cameras
+- Export trained models to ONNX
+- Switch the GUI between English and Japanese
+- Store reusable CPU/GPU configuration profiles
 
 ## Requirements
 
-- Python **3.10** or later
-- [uv](https://docs.astral.sh/uv/) (recommended)
+- Python 3.10–3.13
+- Windows 11 is the primary supported platform
+- NVIDIA CUDA GPU is recommended for training; CPU inference is supported
+
+On Linux, tkinter may need to be installed through the operating-system package manager.
 
 ## Installation
 
+From PyPI:
+
 ```bash
-git clone https://github.com/Moge800/yolox_wrapper.git
-cd yolox_wrapper
-uv sync
+pip install ptyolox-garage
 ```
 
-## Quick Start
+For development with [uv](https://docs.astral.sh/uv/):
 
-### Code API
+```bash
+git clone https://github.com/Moge800/ptyolox-garage.git
+cd ptyolox-garage
+uv sync --group dev
+```
+
+PyTorch builds are hardware-specific. Install the appropriate PyTorch build from the [official selector](https://pytorch.org/get-started/locally/) when CUDA support is required.
+
+## GUI
+
+```bash
+ptyolox-garage
+```
+
+The GUI contains four work areas: training, image inference, live camera inference, and ONNX export. The initial language follows the operating-system locale and can be changed from the Language menu.
+
+Configuration is stored in the operating system's user configuration directory. On Windows, the default location is `%APPDATA%\ptyolox-garage\config.ini`.
+
+## Python API
 
 ```python
-from yolox_wrapper import YOLOX
+from ptyolox_garage import YOLOX
 
-# Training
+# Train from a Label Studio COCO export.
 model = YOLOX("l")
-model.train(data="data.yaml", epochs=[100, 200, 300], device="cuda:0", batch=16)
+model.train(
+    data="data.yaml",
+    epochs=[100, 200, 300],
+    device="cuda:0",
+    batch=16,
+)
 
-# Inference
+# Run inference.
 model = YOLOX("best_model.pt")
 results = model.predict("image.jpg", conf=0.3)
-for r in results:
-    print(r.boxes.xyxy, r.boxes.conf, r.boxes.cls)
-    annotated = r.plot()
+annotated = results[0].plot()
 
-# ONNX export
+# Export to ONNX.
 model.export(format="onnx")
 ```
 
-### GUI
+## Dataset Configuration
 
-```bash
-uv run yolox-gui
-```
-
-## data.yaml Format
+`data.yaml` points to a Label Studio COCO export and its image directory:
 
 ```yaml
-coco_json: /path/to/result.json    # Label Studio COCO export JSON
-images_dir: /path/to/images        # Image directory
-output_dir: /path/to/output        # Output directory (optional)
-val_split: 0.2                     # Validation split ratio (optional)
+coco_json: C:/datasets/widgets/result.json
+images_dir: C:/datasets/widgets/images
+output_dir: C:/datasets/widgets/prepared
+val_split: 0.2
 ```
+
+PTYOLOX Garage remaps COCO category IDs, validates image paths, creates train/validation splits, and writes the directory structure expected by Pixeltable YOLOX.
 
 ## Model Sizes
 
-| Size | depth | width |
-|------|-------|-------|
+| Name | Depth | Width |
+|---|---:|---:|
 | `nano` | 0.33 | 0.25 |
 | `tiny` | 0.33 | 0.375 |
 | `s` | 0.33 | 0.50 |
@@ -73,41 +96,21 @@ val_split: 0.2                     # Validation split ratio (optional)
 | `l` | 1.00 | 1.00 |
 | `x` | 1.33 | 1.25 |
 
-## Config Profiles
-
-Manage multiple environment settings with `config.ini`:
-
-```ini
-[default]
-device = cpu
-model_size = l
-batch_size = 16
-imgsz = 640
-
-[factory_pc]
-device = cuda:0
-model_size = l
-batch_size = 16
-imgsz = 640
-```
-
-## Tests
+## Development
 
 ```bash
+uv sync --group dev
 uv run pytest
+uv run ruff check .
+uv build
 ```
 
-## Documentation
+Detailed guides are available in the [English documentation](https://github.com/Moge800/ptyolox-garage/tree/main/docs/en) and [Japanese documentation](https://github.com/Moge800/ptyolox-garage/tree/main/docs/jp).
 
-See [docs/](docs/en/index.md) for detailed documentation.
+## Attribution
 
-- [Installation](docs/en/installation.md)
-- [Quick Start](docs/en/quickstart.md)
-- [Configuration](docs/en/configuration.md)
-- [GUI Guide](docs/en/gui.md)
-- API Reference: [YOLOX](docs/en/api/wrapper.md) / [AppConfig](docs/en/api/config.md) / [DatasetPreparer](docs/en/api/dataset.md) / [Trainer](docs/en/api/trainer.md)
-- [Development Guide](docs/en/development.md)
+PTYOLOX Garage is built on [Pixeltable YOLOX](https://github.com/pixeltable/pixeltable-yolox), which is derived from [Megvii YOLOX](https://github.com/Megvii-BaseDetection/YOLOX). PTYOLOX Garage is an independent project and is not an official Pixeltable product.
 
 ## License
 
-[MIT License](LICENSE)
+Licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for attribution.

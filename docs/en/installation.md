@@ -7,11 +7,20 @@
 
 ## Steps
 
+For a normal installation, use PyPI:
+
+```bash
+pip install ptyolox-garage
+ptyolox-garage
+```
+
+The following steps install a development checkout.
+
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/Moge800/yolox_wrapper.git
-cd yolox_wrapper
+git clone https://github.com/Moge800/ptyolox-garage.git
+cd ptyolox-garage
 ```
 
 ### 2. Create Virtual Environment and Install Dependencies
@@ -25,7 +34,7 @@ uv sync
 ### 3. Verify Installation
 
 ```bash
-uv run python -c "from yolox_wrapper import YOLOX; print('OK')"
+uv run python -c "from ptyolox_garage import YOLOX; print('OK')"
 ```
 
 ---
@@ -37,7 +46,7 @@ uv run python -c "from yolox_wrapper import YOLOX; print('OK')"
 | torch | >= 2.5.1 | Deep learning framework |
 | torchvision | >= 0.20.1 | Image processing utilities (NMS, etc.) |
 | opencv-python | >= 4.8 | Image loading and drawing |
-| numpy | >= 1.24, < 2.0 | Numerical computation |
+| numpy | >= 1.24 | Numerical computation |
 | pillow | >= 10.0 | Image display in GUI |
 | pyyaml | >= 6.0 | data.yaml parsing |
 | pixeltable-yolox | >= 0.4.2 | YOLOX model definitions and training logic (Python 3.9–3.13) |
@@ -63,6 +72,8 @@ uv sync --group dev
 
 To use a CUDA-capable GPU, ensure that the CUDA build of PyTorch is installed.  
 Set `device = cuda:0` in `config.ini` to enable GPU-accelerated training and inference.
+Install the PyTorch build appropriate for your CUDA version using the official
+PyTorch installation selector.
 
 ```python
 import torch

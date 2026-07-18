@@ -1,6 +1,6 @@
 # API Reference — YOLOX (wrapper)
 
-The `yolox_wrapper.wrapper` module provides the main class that integrates YOLOX model loading, inference, training, and export.
+The `ptyolox_garage.wrapper` module provides the main class that integrates YOLOX model loading, inference, training, and export.
 
 ---
 

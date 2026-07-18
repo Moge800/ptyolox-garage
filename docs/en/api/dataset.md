@@ -1,6 +1,6 @@
 # API Reference — DatasetPreparer (dataset)
 
-The `yolox_wrapper.dataset` module converts Label Studio COCO exports into a YOLOX training directory structure.
+The `ptyolox_garage.dataset` module converts Label Studio COCO exports into a YOLOX training directory structure.
 
 ---
 
@@ -88,7 +88,7 @@ output_dir/
 ## Usage Example
 
 ```python
-from yolox_wrapper.dataset import DatasetPreparer
+from ptyolox_garage.dataset import DatasetPreparer
 
 preparer = DatasetPreparer(
     coco_json_path="export/result.json",

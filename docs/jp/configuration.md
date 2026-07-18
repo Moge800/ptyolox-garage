@@ -1,12 +1,16 @@
 # 設定ファイル (`config.ini`)
 
-YOLOX Wrapper は `config.ini` ファイルでアプリケーション設定を管理します。  
+PTYOLOX Garage は `config.ini` ファイルでアプリケーション設定を管理します。
 複数のプロファイルを定義し、GUI のドロップダウンで切り替えて使用できます。
+
+設定ファイルはOS標準のユーザー設定ディレクトリへ保存されます。Windowsでの
+標準パスは`%APPDATA%\ptyolox-garage\config.ini`です。リポジトリ内の
+`config.example.ini`は参照用であり、実行時には直接使用しません。
 
 ## ファイル形式
 
 ```ini
-; YOLOX Wrapper 設定ファイル
+; PTYOLOX Garage 設定ファイル
 
 [default]
 device = cpu
@@ -18,6 +22,7 @@ val_split = 0.2
 output_dir =
 conf = 0.25
 iou = 0.45
+language = auto
 
 [factory_pc]
 device = cuda:0
@@ -44,6 +49,7 @@ iou = 0.45
 | `output_dir` | str | `""` | 出力先ディレクトリ（空欄の場合はデフォルト） |
 | `conf` | float | `0.25` | 推論時の信頼度しきい値 |
 | `iou` | float | `0.45` | NMS の IoU しきい値 |
+| `language` | str | `auto` | GUI言語。`auto` / `ja` / `en` |
 
 ## プロファイル
 
@@ -55,7 +61,7 @@ iou = 0.45
 ## コードからの操作
 
 ```python
-from yolox_wrapper import AppConfig, ProfileParams
+from ptyolox_garage import AppConfig, ProfileParams
 
 config = AppConfig()          # config.ini を読み込み
 config.load()

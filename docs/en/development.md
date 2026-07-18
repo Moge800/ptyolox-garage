@@ -3,8 +3,8 @@
 ## Development Environment Setup
 
 ```bash
-git clone https://github.com/Moge800/yolox_wrapper.git
-cd yolox_wrapper
+git clone https://github.com/Moge800/ptyolox-garage.git
+cd ptyolox-garage
 uv sync --group dev
 ```
 
@@ -19,7 +19,7 @@ uv run pytest
 With coverage:
 
 ```bash
-uv run pytest --cov=src/yolox_wrapper
+uv run pytest --cov=src/ptyolox_garage
 ```
 
 ### Test Structure
@@ -46,12 +46,12 @@ uv run ruff format .       # Format
 ## Project Structure
 
 ```
-yolox_wrapper/
+ptyolox_garage/
 ├── main.py                     # GUI entry point
-├── config.ini                  # Application settings
+├── config.example.ini                  # Application settings
 ├── pyproject.toml              # Package configuration
 ├── src/
-│   └── yolox_wrapper/
+│   └── ptyolox_garage/
 │       ├── __init__.py         # Package exports
 │       ├── config.py           # Config management (AppConfig, ProfileParams)
 │       ├── dataset.py          # Dataset preparation (DatasetPreparer)
@@ -89,4 +89,23 @@ gui/app.py ──→ gui/*_tab.py ──→ wrapper.py, config.py
 
 ## License
 
-MIT License — See [LICENSE](../../LICENSE) for details.
+Apache License 2.0 — See [LICENSE](../../LICENSE) for details.
+
+---
+
+## Release to PyPI
+
+PyPI publication uses Trusted Publishing and starts automatically when a
+GitHub Release is published. Configure the PyPI publisher with these values:
+
+| Setting | Value |
+|---|---|
+| Owner | `Moge800` |
+| Repository | `ptyolox-garage` |
+| Workflow | `publish.yml` |
+| Environment | `pypi` |
+
+Before publishing, update `project.version` in `pyproject.toml`, create a tag
+named `v<version>`, and publish a GitHub Release for that tag. The workflow
+checks the tag, runs the tests and Ruff, builds the wheel and sdist, publishes
+both to PyPI, and attaches them to the GitHub Release.

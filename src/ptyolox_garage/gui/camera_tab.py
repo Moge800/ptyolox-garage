@@ -13,6 +13,7 @@ import numpy as np
 from PIL import Image, ImageTk
 
 from ..config import AppConfig
+from ..i18n import tr
 from ..wrapper import YOLOX
 
 
@@ -38,12 +39,12 @@ class CameraTab(ttk.Frame):
 
     def _build(self) -> None:
         # 左: 設定
-        left = ttk.LabelFrame(self, text="カメラ設定", padding=8)
+        left = ttk.LabelFrame(self, text=tr("カメラ設定", "Camera Settings"), padding=8)
         left.pack(side="left", fill="y", padx=(8, 4), pady=8)
 
         # モデルパス
         self._model_var = tk.StringVar()
-        ttk.Label(left, text="モデル (.pt):").pack(anchor="w")
+        ttk.Label(left, text=tr("モデル (.pt):", "Model (.pt):")).pack(anchor="w")
         row = ttk.Frame(left)
         row.pack(fill="x")
         ttk.Entry(row, textvariable=self._model_var).pack(
@@ -54,7 +55,7 @@ class CameraTab(ttk.Frame):
         )
 
         # カメラ番号
-        ttk.Label(left, text="カメラ番号:").pack(anchor="w", pady=(6, 0))
+        ttk.Label(left, text=tr("カメラ番号:", "Camera index:")).pack(anchor="w", pady=(6, 0))
         self._cam_var = tk.IntVar(value=0)
         ttk.Spinbox(left, from_=0, to=9, textvariable=self._cam_var, width=5).pack(
             anchor="w"
@@ -62,7 +63,7 @@ class CameraTab(ttk.Frame):
 
         # conf / iou
         ttk.Separator(left, orient="horizontal").pack(fill="x", pady=8)
-        ttk.Label(left, text="conf 閾値:").pack(anchor="w")
+        ttk.Label(left, text=tr("conf 閾値:", "Confidence threshold:")).pack(anchor="w")
         self._conf_var = tk.DoubleVar(value=0.25)
         self._conf_label = ttk.Label(left, text="0.25")
         ttk.Scale(
@@ -76,7 +77,7 @@ class CameraTab(ttk.Frame):
         ).pack(anchor="w")
         self._conf_label.pack(anchor="e")
 
-        ttk.Label(left, text="IOU 閾値:").pack(anchor="w", pady=(6, 0))
+        ttk.Label(left, text=tr("IOU 閾値:", "IoU threshold:")).pack(anchor="w", pady=(6, 0))
         self._iou_var = tk.DoubleVar(value=0.45)
         self._iou_label = ttk.Label(left, text="0.45")
         ttk.Scale(
@@ -92,7 +93,7 @@ class CameraTab(ttk.Frame):
 
         # デバイス
         ttk.Separator(left, orient="horizontal").pack(fill="x", pady=8)
-        ttk.Label(left, text="デバイス:").pack(anchor="w")
+        ttk.Label(left, text=tr("デバイス:", "Device:")).pack(anchor="w")
         self._device_var = tk.StringVar(value="cpu")
         dev_frame = ttk.Frame(left)
         dev_frame.pack(anchor="w")
@@ -109,10 +110,10 @@ class CameraTab(ttk.Frame):
         ttk.Separator(left, orient="horizontal").pack(fill="x", pady=8)
         btn_frame = ttk.Frame(left)
         btn_frame.pack(fill="x")
-        self._start_btn = ttk.Button(btn_frame, text="開始", command=self._start)
+        self._start_btn = ttk.Button(btn_frame, text=tr("開始", "Start"), command=self._start)
         self._start_btn.pack(side="left", expand=True, fill="x", padx=(0, 2))
         self._stop_btn = ttk.Button(
-            btn_frame, text="停止", command=self._stop, state="disabled"
+            btn_frame, text=tr("停止", "Stop"), command=self._stop, state="disabled"
         )
         self._stop_btn.pack(side="left", expand=True, fill="x", padx=(2, 0))
 
@@ -126,7 +127,7 @@ class CameraTab(ttk.Frame):
 
         self._video_label = ttk.Label(
             right,
-            text="(カメラ映像がここに表示されます)",
+            text=tr("(カメラ映像がここに表示されます)", "(Camera preview)"),
             anchor="center",
             relief="sunken",
         )
@@ -157,13 +158,13 @@ class CameraTab(ttk.Frame):
     def _start(self) -> None:
         model_path = self._model_var.get().strip()
         if not model_path:
-            messagebox.showwarning("入力エラー", "モデルパスを指定してください。")
+            messagebox.showwarning(tr("入力エラー", "Input Error"), tr("モデルパスを指定してください。", "Specify a model path."))
             return
 
         try:
             self._model = YOLOX(model_path)
         except Exception as e:
-            messagebox.showerror("モデル読み込みエラー", str(e))
+            messagebox.showerror(tr("モデル読み込みエラー", "Model Loading Error"), str(e))
             return
 
         self._stop_event.clear()
@@ -260,7 +261,7 @@ class CameraTab(ttk.Frame):
 
     def _browse_model(self) -> None:
         path = filedialog.askopenfilename(
-            filetypes=[("PyTorch モデル", "*.pt"), ("全ファイル", "*.*")]
+            filetypes=[(tr("PyTorch モデル", "PyTorch Model"), "*.pt"), (tr("全ファイル", "All Files"), "*.*")]
         )
         if path:
             self._model_var.set(path)

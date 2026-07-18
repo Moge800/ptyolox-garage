@@ -10,6 +10,7 @@ import numpy as np
 from PIL import Image, ImageTk
 
 from ..config import AppConfig
+from ..i18n import tr
 from ..wrapper import YOLOX
 
 
@@ -33,22 +34,22 @@ class InferTab(ttk.Frame):
 
     def _build(self) -> None:
         # 左: 設定
-        left = ttk.LabelFrame(self, text="推論設定", padding=8)
+        left = ttk.LabelFrame(self, text=tr("推論設定", "Inference Settings"), padding=8)
         left.pack(side="left", fill="y", padx=(8, 4), pady=8)
 
         # モデルパス
         self._model_var = tk.StringVar()
         self._add_path_row(
             left,
-            "モデル (.pt):",
+            tr("モデル (.pt):", "Model (.pt):"),
             self._model_var,
             is_file=True,
-            filetypes=[("PyTorch モデル", "*.pt"), ("全ファイル", "*.*")],
+            filetypes=[(tr("PyTorch モデル", "PyTorch Model"), "*.pt"), (tr("全ファイル", "All Files"), "*.*")],
         )
 
         # 画像パス
         self._source_var = tk.StringVar()
-        ttk.Label(left, text="画像 / ディレクトリ:").pack(anchor="w", pady=(6, 0))
+        ttk.Label(left, text=tr("画像 / ディレクトリ:", "Image / directory:")).pack(anchor="w", pady=(6, 0))
         row = ttk.Frame(left)
         row.pack(fill="x")
         ttk.Entry(row, textvariable=self._source_var).pack(
@@ -60,7 +61,7 @@ class InferTab(ttk.Frame):
 
         # conf / iou
         ttk.Separator(left, orient="horizontal").pack(fill="x", pady=8)
-        ttk.Label(left, text="conf 閾値:").pack(anchor="w")
+        ttk.Label(left, text=tr("conf 閾値:", "Confidence threshold:")).pack(anchor="w")
         self._conf_var = tk.DoubleVar(value=0.25)
         self._conf_label = ttk.Label(left, text="0.25")
         ttk.Scale(
@@ -74,7 +75,7 @@ class InferTab(ttk.Frame):
         ).pack(anchor="w")
         self._conf_label.pack(anchor="e")
 
-        ttk.Label(left, text="IOU 閾値:").pack(anchor="w", pady=(6, 0))
+        ttk.Label(left, text=tr("IOU 閾値:", "IoU threshold:")).pack(anchor="w", pady=(6, 0))
         self._iou_var = tk.DoubleVar(value=0.45)
         self._iou_label = ttk.Label(left, text="0.45")
         ttk.Scale(
@@ -90,7 +91,7 @@ class InferTab(ttk.Frame):
 
         # デバイス
         ttk.Separator(left, orient="horizontal").pack(fill="x", pady=8)
-        ttk.Label(left, text="デバイス:").pack(anchor="w")
+        ttk.Label(left, text=tr("デバイス:", "Device:")).pack(anchor="w")
         self._device_var = tk.StringVar(value="cpu")
         dev_frame = ttk.Frame(left)
         dev_frame.pack(anchor="w")
@@ -105,7 +106,7 @@ class InferTab(ttk.Frame):
 
         # ボタン
         ttk.Separator(left, orient="horizontal").pack(fill="x", pady=8)
-        ttk.Button(left, text="推論実行", command=self._run).pack(fill="x")
+        ttk.Button(left, text=tr("推論実行", "Run Inference"), command=self._run).pack(fill="x")
 
         # 右: 結果
         right = ttk.Frame(self, padding=(4, 8, 8, 8))
@@ -113,12 +114,15 @@ class InferTab(ttk.Frame):
 
         # 画像表示
         self._img_label = ttk.Label(
-            right, text="(画像がここに表示されます)", anchor="center", relief="sunken"
+            right,
+            text=tr("(画像がここに表示されます)", "(Image preview)"),
+            anchor="center",
+            relief="sunken",
         )
         self._img_label.pack(fill="both", expand=True)
 
         # 検出結果テキスト
-        ttk.Label(right, text="検出結果:").pack(anchor="w", pady=(4, 0))
+        ttk.Label(right, text=tr("検出結果:", "Detections:")).pack(anchor="w", pady=(4, 0))
         self._result_text = scrolledtext.ScrolledText(
             right, height=6, state="disabled", wrap="word", font=("Consolas", 9)
         )
@@ -150,10 +154,10 @@ class InferTab(ttk.Frame):
         model_path = self._model_var.get().strip()
         source = self._source_var.get().strip()
         if not model_path:
-            messagebox.showwarning("入力エラー", "モデルパスを指定してください。")
+            messagebox.showwarning(tr("入力エラー", "Input Error"), tr("モデルパスを指定してください。", "Specify a model path."))
             return
         if not source:
-            messagebox.showwarning("入力エラー", "画像パスを指定してください。")
+            messagebox.showwarning(tr("入力エラー", "Input Error"), tr("画像パスを指定してください。", "Specify an image path."))
             return
 
         try:
@@ -168,7 +172,7 @@ class InferTab(ttk.Frame):
                 device=self._device_var.get(),
             )
         except Exception as e:
-            messagebox.showerror("推論エラー", str(e))
+            messagebox.showerror(tr("推論エラー", "Inference Error"), str(e))
             return
 
         if results:
@@ -181,7 +185,7 @@ class InferTab(ttk.Frame):
 
         # テキスト
         lines = [
-            f"検出数: {len(result.boxes)}",
+            tr(f"検出数: {len(result.boxes)}", f"Detections: {len(result.boxes)}"),
         ]
         for i, box in enumerate(result.boxes):
             cls_id = int(box.cls[0].item())
@@ -218,7 +222,7 @@ class InferTab(ttk.Frame):
 
     def _browse_source(self) -> None:
         path = filedialog.askopenfilename(
-            filetypes=[("画像", "*.jpg *.jpeg *.png *.bmp"), ("全ファイル", "*.*")]
+            filetypes=[(tr("画像", "Images"), "*.jpg *.jpeg *.png *.bmp"), (tr("全ファイル", "All Files"), "*.*")]
         )
         if path:
             self._source_var.set(path)
@@ -247,6 +251,6 @@ class InferTab(ttk.Frame):
         ttk.Entry(row, textvariable=var).pack(side="left", fill="x", expand=True)
 
         def cmd(v=var, ft=filetypes):
-            v.set(filedialog.askopenfilename(filetypes=ft or [("全ファイル", "*.*")]))
+            v.set(filedialog.askopenfilename(filetypes=ft or [(tr("全ファイル", "All Files"), "*.*")]))
 
         ttk.Button(row, text="...", width=3, command=cmd).pack(side="left")

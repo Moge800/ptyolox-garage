@@ -1,6 +1,6 @@
 # API リファレンス — AppConfig / ProfileParams (config)
 
-`yolox_wrapper.config` モジュールは、`config.ini` を介したアプリケーション設定の読み書きを管理します。
+`ptyolox_garage.config` モジュールは、`config.ini` を介したアプリケーション設定の読み書きを管理します。
 
 ---
 
@@ -126,7 +126,7 @@ def remove_profile(self, profile: str) -> bool
 ## 使用例
 
 ```python
-from yolox_wrapper import AppConfig, ProfileParams
+from ptyolox_garage import AppConfig, ProfileParams
 
 # 読み込み
 config = AppConfig()

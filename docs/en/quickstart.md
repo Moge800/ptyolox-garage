@@ -5,7 +5,7 @@
 ### Training
 
 ```python
-from yolox_wrapper import YOLOX
+from ptyolox_garage import YOLOX
 
 model = YOLOX("l")  # Model size: nano / tiny / s / m / l / x
 model.train(
@@ -20,7 +20,7 @@ model.train(
 ### Inference
 
 ```python
-from yolox_wrapper import YOLOX
+from ptyolox_garage import YOLOX
 
 model = YOLOX("best_model.pt")            # Load trained model
 results = model.predict("image.jpg", conf=0.3)
@@ -47,7 +47,7 @@ print(f"Exported to {onnx_path}")
 ## Using the GUI
 
 ```bash
-uv run yolox-gui
+uv run ptyolox-garage
 ```
 
 or

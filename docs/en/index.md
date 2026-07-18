@@ -1,6 +1,6 @@
-# YOLOX Wrapper Documentation
+# PTYOLOX Garage Documentation
 
-YOLOX Wrapper is a Python toolkit for training, inference, and ONNX export of YOLOX object detection models, powered by [pixeltable-yolox](https://github.com/pixeltable/pixeltable-yolox).  
+PTYOLOX Garage is a Python toolkit for training, inference, and ONNX export of YOLOX object detection models, powered by [pixeltable-yolox](https://github.com/pixeltable/pixeltable-yolox).
 It provides an ultralytics YOLO-like API and a tkinter-based GUI.
 
 ---

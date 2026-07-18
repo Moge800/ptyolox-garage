@@ -1,6 +1,6 @@
 """設定管理モジュール
 
-config.ini をプロジェクトルートから読み書きします。
+config.ini を OS 標準のユーザー設定ディレクトリから読み書きします。
 セクションごとに設定を保存し、GUI で切り替えられます。
 
 使用例::
@@ -19,8 +19,11 @@ import configparser
 from dataclasses import dataclass, fields
 from pathlib import Path
 
-# config.ini の場所: プロジェクトルート (pyproject.toml と同階層)
-_DEFAULT_CONFIG_PATH = Path(__file__).parent.parent.parent / "config.ini"
+from platformdirs import user_config_path
+
+_DEFAULT_CONFIG_PATH = (
+    user_config_path("ptyolox-garage", appauthor=False, roaming=True) / "config.ini"
+)
 
 _DEFAULTS: dict[str, str] = {
     "device": "cpu",
@@ -32,6 +35,7 @@ _DEFAULTS: dict[str, str] = {
     "output_dir": "",
     "conf": "0.25",
     "iou": "0.45",
+    "language": "auto",
 }
 
 
@@ -48,6 +52,7 @@ class ProfileParams:
     output_dir: str = ""
     conf: float = 0.25
     iou: float = 0.45
+    language: str = "auto"
 
 
 class AppConfig:
@@ -99,6 +104,7 @@ class AppConfig:
             output_dir=sec.get("output_dir", ""),
             conf=sec.getfloat("conf", 0.25),
             iou=sec.getfloat("iou", 0.45),
+            language=sec.get("language", "auto"),
         )
 
     def set(self, profile: str, key: str, value: str) -> None:

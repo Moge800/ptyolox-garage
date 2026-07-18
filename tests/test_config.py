@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from yolox_wrapper.config import AppConfig, ProfileParams
+from ptyolox_garage.config import AppConfig, ProfileParams
 
 
 class TestAppConfig:
@@ -14,6 +14,7 @@ class TestAppConfig:
         assert p.device == "cpu"
         assert p.model_size == "l"
         assert p.batch_size == 16
+        assert p.language == "auto"
 
     def test_profiles_returns_sections(self, tmp_path: Path) -> None:
         cfg = AppConfig(tmp_path / "config.ini")
