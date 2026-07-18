@@ -21,7 +21,9 @@ from pathlib import Path
 
 from platformdirs import user_config_path
 
-_DEFAULT_CONFIG_PATH = user_config_path("ptyolox-garage", appauthor=False) / "config.ini"
+_DEFAULT_CONFIG_PATH = (
+    user_config_path("ptyolox-garage", appauthor=False, roaming=True) / "config.ini"
+)
 
 _DEFAULTS: dict[str, str] = {
     "device": "cpu",

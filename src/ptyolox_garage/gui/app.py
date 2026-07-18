@@ -149,6 +149,20 @@ class App(tk.Tk):
         self._profile_cb["values"] = self.config_mgr.profiles()
 
     def _change_language(self) -> None:
+        if self._train_tab.is_busy() or self._export_tab.is_busy():
+            from tkinter.messagebox import showwarning
+
+            self._language_var.set(self._configured_language)
+            showwarning(
+                tr("処理中", "Task in Progress"),
+                tr(
+                    "学習またはエクスポート中は言語を変更できません。",
+                    "The language cannot be changed during training or export.",
+                ),
+                parent=self,
+            )
+            return
+
         self._train_tab.save_profile()
         self._infer_tab.save_profile()
         self._camera_tab.save_profile()

@@ -10,7 +10,7 @@ from typing import Any
 
 import beep_lite
 
-from ..config import AppConfig, ProfileParams
+from ..config import AppConfig
 from ..i18n import tr
 from ..wrapper import YOLOX
 
@@ -28,6 +28,7 @@ class TrainTab(ttk.Frame):
         self._config_mgr = config_mgr
         self._profile_var = profile_var
         self._thread: threading.Thread | None = None
+        self._running = False
         self._stop_event = threading.Event()
         self._log_queue: queue.Queue[str | None] = queue.Queue()
         self._train_succeeded = False
@@ -172,18 +173,20 @@ class TrainTab(ttk.Frame):
 
     def save_profile(self) -> None:
         profile = self._profile_var.get()
-        p = ProfileParams(
-            device=self._device_var.get(),
-            model_size=self._model_var.get(),
-            batch_size=self._batch_var.get(),
-            imgsz=self._imgsz_var.get(),
-            workers=self._workers_var.get(),
-            val_split=self._val_split_var.get(),
-            output_dir="",
-            conf=0.25,
-            iou=0.45,
-        )
-        self._config_mgr.set_params(profile, p)
+        values = {
+            "device": self._device_var.get(),
+            "model_size": self._model_var.get(),
+            "batch_size": str(self._batch_var.get()),
+            "imgsz": str(self._imgsz_var.get()),
+            "workers": str(self._workers_var.get()),
+            "val_split": str(self._val_split_var.get()),
+        }
+        for key, value in values.items():
+            self._config_mgr.set(profile, key, value)
+
+    def is_busy(self) -> bool:
+        """Return whether a training task still owns this tab."""
+        return self._running
 
     # ------------------------------------------------------------------
     # 学習制御
@@ -311,6 +314,7 @@ class TrainTab(ttk.Frame):
             self._gpu_radio.config(state="disabled")
 
     def _set_running(self, running: bool) -> None:
+        self._running = running
         state = "disabled" if running else "normal"
         stop_state = "normal" if running else "disabled"
         self._start_btn.config(state=state)

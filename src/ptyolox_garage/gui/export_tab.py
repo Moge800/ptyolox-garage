@@ -16,6 +16,7 @@ class ExportTab(ttk.Frame):
 
     def __init__(self, parent: tk.Widget) -> None:
         super().__init__(parent)
+        self._running = False
         self._build()
 
     def _build(self) -> None:
@@ -71,6 +72,7 @@ class ExportTab(ttk.Frame):
             return
 
         output_path = self._output_var.get().strip() or None
+        self._running = True
         self._export_btn.config(state="disabled")
         self._status_label.config(text=tr("エクスポート中...", "Exporting..."), foreground="gray")
 
@@ -90,6 +92,7 @@ class ExportTab(ttk.Frame):
             self.after(0, lambda: self._on_error(msg))
 
     def _on_done(self, output_path: str) -> None:
+        self._running = False
         self._export_btn.config(state="normal")
         self._status_label.config(text=tr(f"完了: {output_path}", f"Done: {output_path}"), foreground="green")
         messagebox.showinfo(
@@ -98,9 +101,14 @@ class ExportTab(ttk.Frame):
         )
 
     def _on_error(self, msg: str) -> None:
+        self._running = False
         self._export_btn.config(state="normal")
         self._status_label.config(text=tr(f"エラー: {msg}", f"Error: {msg}"), foreground="red")
         messagebox.showerror(tr("エクスポートエラー", "Export Error"), msg)
+
+    def is_busy(self) -> bool:
+        """Return whether an export task still owns this tab."""
+        return self._running
 
     def _browse_model(self) -> None:
         path = filedialog.askopenfilename(

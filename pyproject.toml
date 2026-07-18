@@ -65,10 +65,10 @@ explicit = true
 
 [tool.uv.sources]
 torch = [
-    { index = "pytorch-cu121", marker = "platform_system == 'Linux' and platform_machine == 'x86_64'" },
+    { index = "pytorch-cu121", marker = "platform_system == 'Linux' and platform_machine == 'x86_64' and python_version < '3.13'" },
 ]
 torchvision = [
-    { index = "pytorch-cu121", marker = "platform_system == 'Linux' and platform_machine == 'x86_64'" },
+    { index = "pytorch-cu121", marker = "platform_system == 'Linux' and platform_machine == 'x86_64' and python_version < '3.13'" },
 ]
 
 [build-system]
