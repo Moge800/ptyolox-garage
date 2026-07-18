@@ -292,6 +292,39 @@ class TestGUIEntryPoint:
 
         assert result.returncode == 0, result.stderr
 
+    def test_gui_import_does_not_load_ml_dependencies(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import sys; import ptyolox_garage.gui.app; "
+                "assert 'ptyolox_garage.wrapper' not in sys.modules; "
+                "assert 'torch' not in sys.modules; "
+                "assert 'cv2' not in sys.modules",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        assert result.returncode == 0, result.stderr
+
+    def test_lazy_public_yolox_export(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "from ptyolox_garage import YOLOX; "
+                "from ptyolox_garage.wrapper import YOLOX as DirectYOLOX; "
+                "assert YOLOX is DirectYOLOX",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        assert result.returncode == 0, result.stderr
+
     def test_bootstrap_logs_before_delegating(self, capsys, monkeypatch) -> None:
         import ptyolox_garage_bootstrap as bootstrap
         from ptyolox_garage.gui import app
