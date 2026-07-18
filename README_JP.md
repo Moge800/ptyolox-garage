@@ -45,6 +45,8 @@ PyTorchはハードウェアごとに配布物が異なります。CUDAを使用
 ptyolox-garage
 ```
 
+![PTYOLOX Garageの学習画面](https://raw.githubusercontent.com/Moge800/ptyolox-garage/main/docs/assets/ptyolox-garage-gui.png)
+
 GUIには、学習、画像推論、ライブカメラ推論、ONNXエクスポートの4画面があります。初期言語はOSのロケールから選択され、Languageメニューから変更できます。
 
 設定はOSのユーザー設定ディレクトリへ保存されます。Windowsでは標準で`%APPDATA%\ptyolox-garage\config.ini`を使用します。

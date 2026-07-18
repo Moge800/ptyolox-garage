@@ -45,6 +45,8 @@ PyTorch builds are hardware-specific. Install the appropriate PyTorch build from
 ptyolox-garage
 ```
 
+![PTYOLOX Garage training screen](https://raw.githubusercontent.com/Moge800/ptyolox-garage/main/docs/assets/ptyolox-garage-gui.png)
+
 The GUI contains four work areas: training, image inference, live camera inference, and ONNX export. The initial language follows the operating-system locale and can be changed from the Language menu.
 
 Configuration is stored in the operating system's user configuration directory. On Windows, the default location is `%APPDATA%\ptyolox-garage\config.ini`.
