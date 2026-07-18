@@ -109,5 +109,8 @@ Update `project.version` in `pyproject.toml` before publishing. You can then
 either publish a GitHub Release from a `v<version>` tag, or run the `publish`
 workflow manually from `main`. Release tags must match `v<project.version>`.
 Manual runs publish the version currently in `main`; existing PyPI files are
-skipped. The workflow builds the wheel and sdist, publishes both to PyPI, and
-attaches them to a GitHub Release when one triggered the run.
+skipped. A GitHub Release fails when files for its version already exist on
+PyPI, preventing release assets from diverging from the published package. The
+workflow runs tests and Ruff for the exact release tag or `main` commit, then
+builds the wheel and sdist, publishes both to PyPI, and attaches them to a
+GitHub Release when one triggered the run.

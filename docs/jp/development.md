@@ -108,5 +108,7 @@ PyPI公開にはTrusted Publishingを使用します。PyPI側のPublisherには
 `v<version>`形式のタグからGitHub Releaseを公開するか、`main`から
 `publish` workflowを手動実行します。Releaseタグは`v<project.version>`と
 一致する必要があります。手動実行では`main`のversionを公開し、既存のPyPI
-ファイルはスキップされます。Actionsがwheel/sdist生成、PyPI公開、Release
-起点の場合はReleaseへの成果物添付を実行します。
+ファイルはスキップされます。GitHub Releaseでは同一versionのファイルがPyPIに
+既に存在すると失敗し、Release成果物との不一致を防ぎます。Actionsは対象の
+Releaseタグまたは`main`コミットに対してテストとRuffを実行し、wheel/sdist生成、
+PyPI公開、Release起点の場合はReleaseへの成果物添付を実行します。
