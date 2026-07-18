@@ -1,4 +1,4 @@
-"""DatasetPreparer のテスト"""
+"""Tests for DatasetPreparer."""
 
 import json
 from pathlib import Path
@@ -8,16 +8,16 @@ import pytest
 from ptyolox_garage.dataset import DatasetPreparer
 
 # ---------------------------------------------------------------------------
-# フィクスチャ
+# Fixtures
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
 def coco_dir(tmp_path: Path) -> Path:
-    """最小限の Label Studio COCO エクスポートを tmp_path に作成する"""
+    """Create a minimal Label Studio COCO export in tmp_path."""
     images_dir = tmp_path / "images"
     images_dir.mkdir()
 
-    # ダミー画像を 5 枚作成
+    # Create five placeholder images.
     import cv2
     import numpy as np
     for i in range(5):
@@ -54,7 +54,7 @@ def coco_dir(tmp_path: Path) -> Path:
 
 
 # ---------------------------------------------------------------------------
-# テスト
+# Tests
 # ---------------------------------------------------------------------------
 
 class TestDatasetPreparer:
@@ -68,7 +68,7 @@ class TestDatasetPreparer:
         )
         class_names, num_classes = preparer.prepare()
 
-        # Label Studio の category_id=1,2 → 0-indexed に正規化
+        # Normalize Label Studio category IDs 1 and 2 to zero-based IDs.
         assert num_classes == 2
         assert set(class_names.values()) == {"cat", "dog"}
 
@@ -87,7 +87,7 @@ class TestDatasetPreparer:
         assert (output / "val").is_dir()
 
     def test_split_ratio(self, coco_dir: Path, tmp_path: Path) -> None:
-        """train/val 分割数の確認 (5枚, val_split=0.2 → val 1枚)"""
+        """Split five images into four training and one validation image."""
         output = tmp_path / "dataset"
         preparer = DatasetPreparer(
             coco_json_path=str(coco_dir / "result.json"),
@@ -104,7 +104,7 @@ class TestDatasetPreparer:
         assert len(val_json["images"]) >= 1
 
     def test_annotation_category_id_remapped(self, coco_dir: Path, tmp_path: Path) -> None:
-        """category_id が 0-indexed に正規化されていること"""
+        """Normalize category_id values to zero-based IDs."""
         output = tmp_path / "dataset"
         preparer = DatasetPreparer(
             coco_json_path=str(coco_dir / "result.json"),
@@ -115,11 +115,11 @@ class TestDatasetPreparer:
 
         train_json = json.loads((output / "annotations" / "instances_train.json").read_text())
         cat_ids = {ann["category_id"] for ann in train_json["annotations"]}
-        # 0-indexed なので 0 または 1 のみのはず
+        # Only zero and one are valid after zero-based normalization.
         assert cat_ids.issubset({0, 1})
 
     def test_too_few_images_raises(self, tmp_path: Path) -> None:
-        """画像が 1 枚以下の場合に ValueError が発生すること"""
+        """Raise ValueError when no more than one image is available."""
         import cv2
         import numpy as np
 

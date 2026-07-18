@@ -1,9 +1,9 @@
 """PTYOLOX Garage entry point.
 
-GUI 起動:
+Launch the GUI:
     uv run main.py
 
-ヘッドレス使用例:
+Headless usage example:
     from ptyolox_garage import YOLOX
 
     model = YOLOX("l")

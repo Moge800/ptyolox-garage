@@ -1,4 +1,4 @@
-"""メインウィンドウ"""
+"""Main application window."""
 
 from __future__ import annotations
 
@@ -64,7 +64,7 @@ class App(tk.Tk):
             )
 
     def _build_profile_bar(self) -> None:
-        """プロファイル選択バー"""
+        """Build the profile-selection bar."""
         bar = ttk.Frame(self, padding=(4, 2))
         bar.pack(side="top", fill="x")
 
@@ -187,7 +187,7 @@ class App(tk.Tk):
         self._restore_profile(selected_profile)
 
     def _show_status(self, msg: str) -> None:
-        # ウィンドウタイトルに一時的に表示
+        # Show the status temporarily in the window title.
         original = self.title()
         self.title(f"{original} — {msg}")
         self.after(2000, lambda: self.title(original))

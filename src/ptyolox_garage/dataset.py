@@ -1,24 +1,24 @@
-"""データセット準備モジュール
+"""Dataset preparation utilities.
 
-Label Studio の COCO エクスポートを YOLOX 学習構造へ変換します。
+Convert a Label Studio COCO export into the directory layout expected by YOLOX.
 
-Label Studio からのエクスポート手順:
-    1. Label Studio プロジェクト → Export
-    2. 形式: COCO JSON を選択
-    3. ZIP を展開すると以下の構造になる:
+Label Studio export procedure:
+    1. Select Export in the Label Studio project.
+    2. Select the COCO JSON format.
+    3. Extract the ZIP file into the following layout:
         export_dir/
-        ├── result.json          ← annotations (COCO 形式)
-        └── images/              ← 画像ファイル群
+        |-- result.json          # annotations in COCO format
+        `-- images/              # image files
 
-YOLOX が期待する出力構造:
+Output layout expected by YOLOX:
     output_dir/
-    ├── annotations/
-    │   ├── instances_train.json
-    │   └── instances_val.json
-    ├── train/
-    │   └── *.jpg / *.png ...
-    └── val/
-        └── *.jpg / *.png ...
+    |-- annotations/
+    |   |-- instances_train.json
+    |   `-- instances_val.json
+    |-- train/
+    |   `-- *.jpg / *.png ...
+    `-- val/
+        `-- *.jpg / *.png ...
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ _MODEL_CONFIGS: dict[str, dict[str, float]] = {
 
 
 class DatasetPreparer:
-    """Label Studio COCO エクスポートを YOLOX 学習構造へ変換するクラス"""
+    """Convert a Label Studio COCO export into a YOLOX training layout."""
 
     def __init__(
         self,
@@ -63,7 +63,7 @@ class DatasetPreparer:
         self._id_remap: dict[int, int] = {}
 
     def prepare(self) -> tuple[dict[int, str], int]:
-        """データセットを整備し (クラス名辞書, クラス数) を返す"""
+        """Prepare the dataset and return its class-name map and class count."""
         print("[Dataset] COCO JSON を読み込み中...")
         self._load_coco()
 
@@ -83,7 +83,7 @@ class DatasetPreparer:
         return self._class_names, self._num_classes
 
     # ------------------------------------------------------------------
-    # 内部処理
+    # Internal operations
     # ------------------------------------------------------------------
 
     def _load_coco(self) -> None:
@@ -97,8 +97,8 @@ class DatasetPreparer:
                 "Label Studio から COCO 形式でエクスポートしてください。"
             )
 
-        # category_id → name マッピング (0-indexed に正規化)
-        # Label Studio は 1-indexed の category_id を使う場合がある
+        # Build a category_id-to-name mapping normalized to zero-based IDs.
+        # Label Studio exports may use one-based category IDs.
         cat_ids_sorted = sorted(c["id"] for c in raw_cats)
         self._id_remap = {orig: new for new, orig in enumerate(cat_ids_sorted)}
 
@@ -106,7 +106,7 @@ class DatasetPreparer:
         self._num_classes = len(self._class_names)
 
     def _resolve_image_paths(self) -> list[dict[str, Any]]:
-        """JSON の file_name から実際のファイルパスを解決する"""
+        """Resolve actual file paths from file_name values in the JSON."""
         ann_by_image: dict[int, list[dict]] = {}
         for ann in self._coco.get("annotations", []):
             ann_by_image.setdefault(ann["image_id"], []).append(ann)

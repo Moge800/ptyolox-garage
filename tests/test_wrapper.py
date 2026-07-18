@@ -1,4 +1,4 @@
-"""YOLOX wrapper のテスト (yolox パッケージ不要な部分のみ)"""
+"""Tests for wrapper behavior that does not require the yolox package."""
 
 from pathlib import Path
 
@@ -65,9 +65,9 @@ class TestLetterbox:
         assert ratio == pytest.approx(6.4)
 
     def test_fill_value(self) -> None:
-        img = np.zeros((100, 200, 3), dtype=np.uint8)  # 横長
+        img = np.zeros((100, 200, 3), dtype=np.uint8)  # Landscape image
         result, _ = _letterbox(img, (640, 640), fill_value=114)
-        # 左上配置なので右下がパディング領域
+        # Top-left placement leaves padding in the bottom-right corner.
         assert result[-1, -1, 0] == 114
 
 
@@ -90,7 +90,7 @@ class TestNmsFallback:
         assert keep.tolist() == [0]
 
     def test_overlapping_boxes_suppressed(self) -> None:
-        # ほぼ同じ位置に 2 つのボックス → 高スコアのみ残る
+        # Two nearly overlapping boxes leave only the higher-scoring box.
         boxes = torch.tensor(
             [
                 [0.0, 0.0, 10.0, 10.0],
@@ -188,7 +188,7 @@ class TestYOLOXResultPlot:
 
 
 # ---------------------------------------------------------------------------
-# YOLOX.__init__ (モデルサイズ文字列)
+# YOLOX.__init__ with model-size strings
 # ---------------------------------------------------------------------------
 
 
@@ -217,7 +217,7 @@ class TestYOLOXInit:
 
 
 class _DummyModel(nn.Module):
-    """torch.save でpickle可能なモジュールレベルのダミーモデル"""
+    """Module-level dummy model that torch.save can pickle."""
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         b = x.shape[0]
@@ -225,13 +225,13 @@ class _DummyModel(nn.Module):
 
 
 # ---------------------------------------------------------------------------
-# YOLOX.save() / load (モックモデル)
+# YOLOX.save() and load() with a mock model
 # ---------------------------------------------------------------------------
 
 
 class TestYOLOXSaveLoad:
     def _make_mock_pt(self, tmp_path: Path) -> str:
-        """最小限の .pt ファイルを作成する"""
+        """Create a minimal .pt file."""
         model = _DummyModel()
         path = str(tmp_path / "dummy.pt")
         torch.save(
@@ -264,19 +264,19 @@ class TestYOLOXSaveLoad:
 
 
 # ---------------------------------------------------------------------------
-# GUI エントリポイント
+# GUI entry point
 # ---------------------------------------------------------------------------
 
 
 class TestGUIEntryPoint:
     def test_gui_main_is_importable(self) -> None:
-        """ptyolox-garage スクリプトのエントリポイントがインポートできる"""
+        """Import the ptyolox-garage script entry point."""
         from ptyolox_garage.gui.app import main as gui_main
 
         assert callable(gui_main)
 
     def test_root_main_delegates_to_gui(self) -> None:
-        """main.py が ptyolox_garage.gui.app.main を呼び出す"""
+        """Have main.py call ptyolox_garage.gui.app.main."""
         import importlib
 
         mod = importlib.import_module("main")

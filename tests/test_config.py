@@ -1,4 +1,4 @@
-"""AppConfig のテスト"""
+"""Tests for AppConfig."""
 
 from pathlib import Path
 
@@ -71,4 +71,4 @@ class TestAppConfig:
     def test_get_unknown_profile_falls_back_to_default(self, tmp_path: Path) -> None:
         cfg = AppConfig(tmp_path / "config.ini")
         p = cfg.get("nonexistent")
-        assert p.device == "cpu"  # default の値
+        assert p.device == "cpu"  # Value inherited from the default profile.

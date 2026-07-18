@@ -1,9 +1,9 @@
-"""設定管理モジュール
+"""Configuration management.
 
-config.ini を OS 標準のユーザー設定ディレクトリから読み書きします。
-セクションごとに設定を保存し、GUI で切り替えられます。
+Read and write config.ini in the operating system's standard user configuration
+directory. Settings are stored in sections that can be selected in the GUI.
 
-使用例::
+Example::
 
     cfg = AppConfig()
     params = cfg.get("factory_pc")
@@ -41,7 +41,7 @@ _DEFAULTS: dict[str, str] = {
 
 @dataclass
 class ProfileParams:
-    """1プロファイル分のパラメータ"""
+    """Parameters for one configuration profile."""
 
     device: str = "cpu"
     model_size: str = "l"
@@ -56,7 +56,7 @@ class ProfileParams:
 
 
 class AppConfig:
-    """config.ini の読み書きを管理するクラス"""
+    """Manage reading and writing config.ini."""
 
     def __init__(self, config_path: str | Path | None = None) -> None:
         self._path = Path(config_path) if config_path else _DEFAULT_CONFIG_PATH
@@ -64,33 +64,33 @@ class AppConfig:
         self.load()
 
     # ------------------------------------------------------------------
-    # 読み込み / 保存
+    # Loading and saving
     # ------------------------------------------------------------------
 
     def load(self) -> None:
-        """config.ini を読み込む (ファイルがなければデフォルト値を使用)"""
+        """Load config.ini, using defaults when the file does not exist."""
         if self._path.exists():
             self._parser.read(self._path, encoding="utf-8")
-        # default セクションがなければ作成
+        # Ensure the default section exists.
         if not self._parser.has_section("default"):
             self._parser.add_section("default")
 
     def save(self) -> None:
-        """config.ini に書き込む"""
+        """Write the current configuration to config.ini."""
         self._path.parent.mkdir(parents=True, exist_ok=True)
         with open(self._path, "w", encoding="utf-8") as f:
             self._parser.write(f)
 
     # ------------------------------------------------------------------
-    # プロファイル操作
+    # Profile operations
     # ------------------------------------------------------------------
 
     def profiles(self) -> list[str]:
-        """利用可能なプロファイル名の一覧を返す"""
+        """Return the available profile names."""
         return self._parser.sections()
 
     def get(self, profile: str = "default") -> ProfileParams:
-        """指定プロファイルのパラメータを返す"""
+        """Return parameters for the specified profile."""
         if not self._parser.has_section(profile):
             profile = "default"
         sec = self._parser[profile]
@@ -108,20 +108,20 @@ class AppConfig:
         )
 
     def set(self, profile: str, key: str, value: str) -> None:
-        """指定プロファイルの値を更新する (save() するまでファイルには書かれない)"""
+        """Update a profile value without writing it to disk until save()."""
         if not self._parser.has_section(profile):
             self._parser.add_section(profile)
         self._parser.set(profile, key, value)
 
     def set_params(self, profile: str, params: ProfileParams) -> None:
-        """ProfileParams を一括で書き込む"""
+        """Update all values in a profile from ProfileParams."""
         if not self._parser.has_section(profile):
             self._parser.add_section(profile)
         for f in fields(params):
             self._parser.set(profile, f.name, str(getattr(params, f.name)))
 
     def add_profile(self, profile: str) -> None:
-        """新規プロファイルを追加する (default の値をコピー)"""
+        """Add a profile initialized with values from the default profile."""
         if self._parser.has_section(profile):
             return
         self._parser.add_section(profile)
@@ -129,7 +129,7 @@ class AppConfig:
         self.set_params(profile, defaults)
 
     def remove_profile(self, profile: str) -> bool:
-        """プロファイルを削除する。default は削除不可。"""
+        """Remove a profile; the default profile cannot be removed."""
         if profile == "default":
             return False
         return self._parser.remove_section(profile)

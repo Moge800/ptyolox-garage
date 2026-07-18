@@ -1,6 +1,6 @@
 """PTYOLOX Garage package.
 
-使用例::
+Example::
 
     from ptyolox_garage import YOLOX
 

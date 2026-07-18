@@ -1,4 +1,4 @@
-"""ONNX エクスポートタブ"""
+"""ONNX export tab."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from ..wrapper import YOLOX
 
 
 class ExportTab(ttk.Frame):
-    """ONNX エクスポートタブ"""
+    """ONNX export tab."""
 
     def __init__(self, parent: tk.Widget) -> None:
         super().__init__(parent)
@@ -23,7 +23,7 @@ class ExportTab(ttk.Frame):
         frame = ttk.LabelFrame(self, text=tr("ONNX エクスポート設定", "ONNX Export Settings"), padding=12)
         frame.pack(padx=16, pady=16, fill="x")
 
-        # モデルパス
+        # Model path
         ttk.Label(frame, text=tr("モデルパス (.pt):", "Model path (.pt):")).grid(
             row=0, column=0, sticky="w", pady=4
         )
@@ -35,7 +35,7 @@ class ExportTab(ttk.Frame):
             row=0, column=2, padx=(2, 0)
         )
 
-        # 出力パス
+        # Output path
         ttk.Label(frame, text=tr("出力パス (.onnx):", "Output path (.onnx):")).grid(
             row=1, column=0, sticky="w", pady=4
         )
@@ -54,7 +54,7 @@ class ExportTab(ttk.Frame):
 
         frame.columnconfigure(1, weight=1)
 
-        # ボタン + ステータス
+        # Controls and status
         btn_frame = ttk.Frame(self)
         btn_frame.pack(padx=16, pady=8, fill="x")
         self._export_btn = ttk.Button(
@@ -116,7 +116,7 @@ class ExportTab(ttk.Frame):
         )
         if path:
             self._model_var.set(path)
-            # 出力パスを自動補完
+            # Populate the output path automatically.
             if not self._output_var.get():
                 self._output_var.set(str(Path(path).with_suffix(".onnx")))
 

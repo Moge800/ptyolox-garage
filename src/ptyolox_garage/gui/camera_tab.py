@@ -1,4 +1,4 @@
-"""カメラテストタブ"""
+"""Camera testing tab."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from ..wrapper import YOLOX
 
 
 class CameraTab(ttk.Frame):
-    """ライブカメラテストタブ"""
+    """Live camera testing tab."""
 
     def __init__(
         self,
@@ -38,11 +38,11 @@ class CameraTab(ttk.Frame):
         self.load_profile(profile_var.get())
 
     def _build(self) -> None:
-        # 左: 設定
+        # Left: settings
         left = ttk.LabelFrame(self, text=tr("カメラ設定", "Camera Settings"), padding=8)
         left.pack(side="left", fill="y", padx=(8, 4), pady=8)
 
-        # モデルパス
+        # Model path
         self._model_var = tk.StringVar()
         ttk.Label(left, text=tr("モデル (.pt):", "Model (.pt):")).pack(anchor="w")
         row = ttk.Frame(left)
@@ -54,7 +54,7 @@ class CameraTab(ttk.Frame):
             side="left"
         )
 
-        # カメラ番号
+        # Camera index
         ttk.Label(left, text=tr("カメラ番号:", "Camera index:")).pack(anchor="w", pady=(6, 0))
         self._cam_var = tk.IntVar(value=0)
         ttk.Spinbox(left, from_=0, to=9, textvariable=self._cam_var, width=5).pack(
@@ -91,7 +91,7 @@ class CameraTab(ttk.Frame):
         ).pack(anchor="w")
         self._iou_label.pack(anchor="e")
 
-        # デバイス
+        # Device
         ttk.Separator(left, orient="horizontal").pack(fill="x", pady=8)
         ttk.Label(left, text=tr("デバイス:", "Device:")).pack(anchor="w")
         self._device_var = tk.StringVar(value="cpu")
@@ -106,7 +106,7 @@ class CameraTab(ttk.Frame):
         self._gpu_radio.pack(side="left")
         self._check_gpu()
 
-        # ボタン
+        # Controls
         ttk.Separator(left, orient="horizontal").pack(fill="x", pady=8)
         btn_frame = ttk.Frame(left)
         btn_frame.pack(fill="x")
@@ -121,7 +121,7 @@ class CameraTab(ttk.Frame):
         self._fps_label = ttk.Label(left, text="FPS: --")
         self._fps_label.pack(anchor="w", pady=(8, 0))
 
-        # 右: 映像
+        # Right: video
         right = ttk.Frame(self, padding=(4, 8, 8, 8))
         right.pack(side="left", fill="both", expand=True)
 
@@ -134,7 +134,7 @@ class CameraTab(ttk.Frame):
         self._video_label.pack(fill="both", expand=True)
 
     # ------------------------------------------------------------------
-    # プロファイル連携
+    # Profile integration
     # ------------------------------------------------------------------
 
     def load_profile(self, profile: str) -> None:
@@ -152,7 +152,7 @@ class CameraTab(ttk.Frame):
         self._config_mgr.set(profile, "iou", str(round(self._iou_var.get(), 2)))
 
     # ------------------------------------------------------------------
-    # カメラ制御
+    # Camera controls
     # ------------------------------------------------------------------
 
     def _start(self) -> None:
@@ -182,7 +182,7 @@ class CameraTab(ttk.Frame):
         self._stop_event.set()
 
     def stop(self) -> None:
-        """アプリ終了時に呼ぶ"""
+        """Release camera resources when the application closes."""
         self._stop_event.set()
 
     def _capture_loop(self) -> None:
@@ -256,7 +256,7 @@ class CameraTab(ttk.Frame):
         self.after(33, self._show_frame)
 
     # ------------------------------------------------------------------
-    # ユーティリティ
+    # Utilities
     # ------------------------------------------------------------------
 
     def _browse_model(self) -> None:

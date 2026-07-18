@@ -1,4 +1,4 @@
-"""推論テストタブ"""
+"""Inference testing tab."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from ..wrapper import YOLOX
 
 
 class InferTab(ttk.Frame):
-    """推論テストタブ"""
+    """Inference testing tab."""
 
     def __init__(
         self,
@@ -33,11 +33,11 @@ class InferTab(ttk.Frame):
         self.load_profile(profile_var.get())
 
     def _build(self) -> None:
-        # 左: 設定
+        # Left: settings
         left = ttk.LabelFrame(self, text=tr("推論設定", "Inference Settings"), padding=8)
         left.pack(side="left", fill="y", padx=(8, 4), pady=8)
 
-        # モデルパス
+        # Model path
         self._model_var = tk.StringVar()
         self._add_path_row(
             left,
@@ -47,7 +47,7 @@ class InferTab(ttk.Frame):
             filetypes=[(tr("PyTorch モデル", "PyTorch Model"), "*.pt"), (tr("全ファイル", "All Files"), "*.*")],
         )
 
-        # 画像パス
+        # Image path
         self._source_var = tk.StringVar()
         ttk.Label(left, text=tr("画像 / ディレクトリ:", "Image / directory:")).pack(anchor="w", pady=(6, 0))
         row = ttk.Frame(left)
@@ -89,7 +89,7 @@ class InferTab(ttk.Frame):
         ).pack(anchor="w")
         self._iou_label.pack(anchor="e")
 
-        # デバイス
+        # Device
         ttk.Separator(left, orient="horizontal").pack(fill="x", pady=8)
         ttk.Label(left, text=tr("デバイス:", "Device:")).pack(anchor="w")
         self._device_var = tk.StringVar(value="cpu")
@@ -104,15 +104,15 @@ class InferTab(ttk.Frame):
         self._gpu_radio.pack(side="left")
         self._check_gpu()
 
-        # ボタン
+        # Controls
         ttk.Separator(left, orient="horizontal").pack(fill="x", pady=8)
         ttk.Button(left, text=tr("推論実行", "Run Inference"), command=self._run).pack(fill="x")
 
-        # 右: 結果
+        # Right: results
         right = ttk.Frame(self, padding=(4, 8, 8, 8))
         right.pack(side="left", fill="both", expand=True)
 
-        # 画像表示
+        # Image preview
         self._img_label = ttk.Label(
             right,
             text=tr("(画像がここに表示されます)", "(Image preview)"),
@@ -121,7 +121,7 @@ class InferTab(ttk.Frame):
         )
         self._img_label.pack(fill="both", expand=True)
 
-        # 検出結果テキスト
+        # Detection results
         ttk.Label(right, text=tr("検出結果:", "Detections:")).pack(anchor="w", pady=(4, 0))
         self._result_text = scrolledtext.ScrolledText(
             right, height=6, state="disabled", wrap="word", font=("Consolas", 9)
@@ -129,7 +129,7 @@ class InferTab(ttk.Frame):
         self._result_text.pack(fill="x")
 
     # ------------------------------------------------------------------
-    # プロファイル連携
+    # Profile integration
     # ------------------------------------------------------------------
 
     def load_profile(self, profile: str) -> None:
@@ -147,7 +147,7 @@ class InferTab(ttk.Frame):
         self._config_mgr.set(profile, "iou", str(round(self._iou_var.get(), 2)))
 
     # ------------------------------------------------------------------
-    # 推論
+    # Inference
     # ------------------------------------------------------------------
 
     def _run(self) -> None:
@@ -179,11 +179,11 @@ class InferTab(ttk.Frame):
             self._display_result(results[0])
 
     def _display_result(self, result: Any) -> None:
-        # 画像表示
+        # Image preview
         annotated = result.plot()
         self._show_image(annotated)
 
-        # テキスト
+        # Result text
         lines = [
             tr(f"検出数: {len(result.boxes)}", f"Detections: {len(result.boxes)}"),
         ]
@@ -217,7 +217,7 @@ class InferTab(ttk.Frame):
         self._img_label.image = photo  # type: ignore[attr-defined]  # ty: ignore[invalid-assignment]
 
     # ------------------------------------------------------------------
-    # ユーティリティ
+    # Utilities
     # ------------------------------------------------------------------
 
     def _browse_source(self) -> None:
