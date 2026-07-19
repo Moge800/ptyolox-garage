@@ -53,7 +53,6 @@ def train(
     pretrained_weights: str | None = None,
     on_log: Callable[[str], None] | None = None,
     on_stage_done: Callable[[int, int, str], None] | None = None,
-    **kwargs: Any,
 ) -> "YOLOX"
 ```
 
@@ -86,8 +85,6 @@ def predict(
     iou: float = 0.45,
     device: str = "cpu",
     verbose: bool = False,
-    save: bool = False,
-    **kwargs: Any,
 ) -> list[YOLOXResult]
 ```
 
@@ -95,12 +92,11 @@ def predict(
 
 | 引数 | 説明 |
 |------|------|
-| `source` | 画像パス、NumPy 配列、またはそれらのリスト |
+| `source` | 画像パス、非再帰の画像ディレクトリ、NumPy 配列、またはそれらのリスト |
 | `conf` | 信頼度しきい値 |
 | `iou` | NMS の IoU しきい値 |
 | `device` | 使用デバイス |
 | `verbose` | 詳細ログ |
-| `save` | 結果画像の保存 |
 
 **戻り値:** `list[YOLOXResult]` (画像ごとに 1 つ)
 
@@ -109,7 +105,7 @@ def predict(
 ### `export()`
 
 ```python
-def export(self, format: str = "onnx", **kwargs: Any) -> str
+def export(self, format: str = "onnx", output_path: str | None = None) -> str
 ```
 
 モデルを指定形式にエクスポートします。
@@ -117,6 +113,7 @@ def export(self, format: str = "onnx", **kwargs: Any) -> str
 | 引数 | 説明 |
 |------|------|
 | `format` | 出力形式（現在は `"onnx"` のみ対応） |
+| `output_path` | 出力先。省略時は読み込んだモデルパスから生成 |
 
 **戻り値:** 出力ファイルのパス
 
@@ -146,7 +143,7 @@ def save(self, path: str) -> None
 
 ## `YOLOXResult` クラス
 
-推論結果のコンテナです。ultralytics の `Results` と互換性のあるインターフェースを提供します。
+推論結果のコンテナです。ultralytics の `Results` 風インターフェースを提供します。
 
 ### 属性
 

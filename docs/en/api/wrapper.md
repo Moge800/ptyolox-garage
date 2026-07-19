@@ -53,7 +53,6 @@ def train(
     pretrained_weights: str | None = None,
     on_log: Callable[[str], None] | None = None,
     on_stage_done: Callable[[int, int, str], None] | None = None,
-    **kwargs: Any,
 ) -> "YOLOX"
 ```
 
@@ -86,8 +85,6 @@ def predict(
     iou: float = 0.45,
     device: str = "cpu",
     verbose: bool = False,
-    save: bool = False,
-    **kwargs: Any,
 ) -> list[YOLOXResult]
 ```
 
@@ -95,12 +92,11 @@ Run inference on images.
 
 | Parameter | Description |
 |-----------|-------------|
-| `source` | Image path, NumPy array, or list thereof |
+| `source` | Image path, non-recursive image directory, NumPy array, or list thereof |
 | `conf` | Confidence threshold |
 | `iou` | NMS IoU threshold |
 | `device` | Device to use |
 | `verbose` | Verbose logging |
-| `save` | Save result images |
 
 **Returns:** `list[YOLOXResult]` (one per image)
 
@@ -109,7 +105,7 @@ Run inference on images.
 ### `export()`
 
 ```python
-def export(self, format: str = "onnx", **kwargs: Any) -> str
+def export(self, format: str = "onnx", output_path: str | None = None) -> str
 ```
 
 Export the model to the specified format.
@@ -117,6 +113,7 @@ Export the model to the specified format.
 | Parameter | Description |
 |-----------|-------------|
 | `format` | Output format (currently only `"onnx"` is supported) |
+| `output_path` | Destination path; generated from the loaded model path when omitted |
 
 **Returns:** Output file path
 
@@ -146,7 +143,7 @@ Save the model as a `.pt` file with metadata.
 
 ## `YOLOXResult` Class
 
-Container for inference results. Provides an interface compatible with ultralytics `Results`.
+Container for inference results. Provides an ultralytics-style `Results` interface.
 
 ### Attributes
 

@@ -4,6 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import cv2
 import numpy as np
 import pytest
 import torch
@@ -13,9 +14,11 @@ from ptyolox_garage.wrapper import (
     YOLOX,
     YOLOXBoxes,
     YOLOXResult,
+    _class_aware_nms_fallback,
     _letterbox,
     _nms_fallback,
     _normalize_model_size,
+    _postprocess,
     _YOLOXBox,
 )
 
@@ -114,6 +117,45 @@ class TestNmsFallback:
         scores = torch.tensor([0.9, 0.8])
         keep = _nms_fallback(boxes, scores, 0.5)
         assert len(keep) == 2
+
+    def test_class_aware_fallback_keeps_overlapping_different_classes(self) -> None:
+        boxes = torch.tensor(
+            [
+                [0.0, 0.0, 10.0, 10.0],
+                [0.0, 0.0, 10.0, 10.0],
+            ]
+        )
+        scores = torch.tensor([0.9, 0.8])
+        class_ids = torch.tensor([0, 1])
+
+        keep = _class_aware_nms_fallback(boxes, scores, class_ids, 0.5)
+
+        assert keep.tolist() == [0, 1]
+
+
+class TestPostprocess:
+    def test_overlapping_boxes_from_different_classes_are_kept(self) -> None:
+        outputs = torch.tensor(
+            [
+                [
+                    [50.0, 50.0, 20.0, 20.0, 0.9, 1.0, 0.0],
+                    [50.0, 50.0, 20.0, 20.0, 0.8, 0.0, 1.0],
+                ]
+            ]
+        )
+
+        boxes, scores, class_ids = _postprocess(
+            outputs,
+            ratio=1.0,
+            orig_h=100,
+            orig_w=100,
+            conf_thre=0.1,
+            iou_thre=0.5,
+        )
+
+        assert boxes.shape == (2, 4)
+        assert scores.tolist() == pytest.approx([0.9, 0.8])
+        assert class_ids.tolist() == [0.0, 1.0]
 
 
 # ---------------------------------------------------------------------------
@@ -216,6 +258,49 @@ class TestYOLOXInit:
         model = YOLOX("l", verbose=False)
         with pytest.raises(RuntimeError, match="モデルが読み込まれていません"):
             model.predict("dummy.jpg")
+
+
+class TestInputCollection:
+    def test_directory_input_loads_supported_images_in_name_order(self, tmp_path: Path) -> None:
+        red = np.full((3, 3, 3), (0, 0, 255), dtype=np.uint8)
+        green = np.full((3, 3, 3), (0, 255, 0), dtype=np.uint8)
+        nested = tmp_path / "nested"
+        nested.mkdir()
+
+        assert cv2.imwrite(str(tmp_path / "b.png"), green)
+        assert cv2.imwrite(str(tmp_path / "a.jpg"), red)
+        assert cv2.imwrite(str(nested / "c.png"), red)
+        (tmp_path / "ignored.txt").write_text("not an image", encoding="utf-8")
+
+        images = YOLOX._collect_images(tmp_path)
+
+        assert len(images) == 2
+        assert images[0][0, 0, 2] > images[0][0, 0, 1]
+        assert images[1][0, 0, 1] > images[1][0, 0, 2]
+
+    def test_directory_without_supported_images_raises(self, tmp_path: Path) -> None:
+        (tmp_path / "ignored.txt").write_text("not an image", encoding="utf-8")
+
+        with pytest.raises(ValueError, match="画像ファイルが見つかりません"):
+            YOLOX._collect_images(tmp_path)
+
+    def test_list_input_with_unreadable_path_raises(self, tmp_path: Path) -> None:
+        with pytest.raises(ValueError, match="画像を読み込めません"):
+            YOLOX._collect_images([tmp_path / "missing.png"])
+
+
+class TestUnsupportedKeywordArguments:
+    def test_train_rejects_unknown_keyword_argument(self) -> None:
+        with pytest.raises(TypeError, match="unexpected keyword argument"):
+            YOLOX("l", verbose=False).train(data="data.yaml", unsupported=True)
+
+    def test_predict_rejects_save_keyword_argument(self) -> None:
+        with pytest.raises(TypeError, match="unexpected keyword argument"):
+            YOLOX("l", verbose=False).predict("image.jpg", save=True)
+
+    def test_export_rejects_unknown_keyword_argument(self) -> None:
+        with pytest.raises(TypeError, match="unexpected keyword argument"):
+            YOLOX("l", verbose=False).export(unsupported=True)
 
 
 class _DummyModel(nn.Module):

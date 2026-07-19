@@ -1,6 +1,6 @@
 """PTYOLOX Garage Module
 
-This module provides a YOLOX wrapper compatible with the Ultralytics YOLO API.
+This module provides a YOLOX wrapper with an Ultralytics-style API.
 
 Example:
     >>> from ptyolox_garage import YOLOX
@@ -62,12 +62,12 @@ def _normalize_model_size(s: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Result objects compatible with Ultralytics Boxes and Results
+# Result objects inspired by Ultralytics Boxes and Results
 # ---------------------------------------------------------------------------
 
 
 class _YOLOXBox:
-    """Single bounding box compatible with an Ultralytics box object.
+    """Single bounding box with an Ultralytics-style interface.
 
     Attributes:
         xyxy: Tensor with shape [1, 4]; ``box.xyxy[0]`` has shape [4].
@@ -89,7 +89,7 @@ class _YOLOXBox:
 
 
 class YOLOXBoxes:
-    """Bounding-box collection compatible with Ultralytics Boxes.
+    """Bounding-box collection with an Ultralytics-style interface.
 
     Attributes:
         xyxy: Tensor with shape [N, 4].
@@ -120,7 +120,7 @@ class YOLOXBoxes:
 
 
 class YOLOXResult:
-    """Inference result compatible with Ultralytics Results.
+    """Inference result with an Ultralytics-style interface.
 
     Attributes:
         boxes: YOLOXBoxes instance.
@@ -202,7 +202,7 @@ def _nms_fallback(
 ) -> torch.Tensor:
     """Implement NMS without depending on torchvision."""
     if boxes.numel() == 0:
-        return torch.zeros(0, dtype=torch.long)
+        return torch.zeros(0, dtype=torch.long, device=boxes.device)
 
     x1, y1, x2, y2 = boxes[:, 0], boxes[:, 1], boxes[:, 2], boxes[:, 3]
     areas = (x2 - x1).clamp(min=0) * (y2 - y1).clamp(min=0)
@@ -223,21 +223,42 @@ def _nms_fallback(
         iou = inter / (areas[idx] + areas[order] - inter + 1e-6)
         order = order[iou <= iou_threshold]
 
-    return torch.tensor(keep, dtype=torch.long)
+    return torch.tensor(keep, dtype=torch.long, device=boxes.device)
 
 
-def _apply_nms(
+def _apply_class_aware_nms(
     boxes: torch.Tensor,
     scores: torch.Tensor,
+    class_ids: torch.Tensor,
     iou_threshold: float,
 ) -> torch.Tensor:
-    """Run NMS with torchvision when available, otherwise use the fallback."""
+    """Run class-aware NMS with torchvision or a per-class fallback."""
     try:
-        from torchvision.ops import nms as tv_nms
+        from torchvision.ops import batched_nms
 
-        return tv_nms(boxes, scores, iou_threshold)
+        return batched_nms(boxes, scores, class_ids, iou_threshold)
     except (ImportError, RuntimeError):
-        return _nms_fallback(boxes, scores, iou_threshold)
+        return _class_aware_nms_fallback(boxes, scores, class_ids, iou_threshold)
+
+
+def _class_aware_nms_fallback(
+    boxes: torch.Tensor,
+    scores: torch.Tensor,
+    class_ids: torch.Tensor,
+    iou_threshold: float,
+) -> torch.Tensor:
+    """Apply fallback NMS independently to each detection class."""
+    kept_by_class: list[torch.Tensor] = []
+    for class_id in class_ids.unique(sorted=True):
+        class_indices = torch.nonzero(class_ids == class_id, as_tuple=False).flatten()
+        class_keep = _nms_fallback(boxes[class_indices], scores[class_indices], iou_threshold)
+        kept_by_class.append(class_indices[class_keep])
+
+    if not kept_by_class:
+        return torch.zeros(0, dtype=torch.long, device=boxes.device)
+
+    keep = torch.cat(kept_by_class)
+    return keep[scores[keep].argsort(descending=True)]
 
 
 def _postprocess(
@@ -268,14 +289,14 @@ def _postprocess(
 
     boxes_f = boxes_xyxy[mask]
     scores_f = scores[mask]
-    cls_f = cls_ids[mask].float()
+    cls_f = cls_ids[mask]
 
     boxes_f = boxes_f / ratio
     boxes_f[:, 0::2].clamp_(0.0, float(orig_w))
     boxes_f[:, 1::2].clamp_(0.0, float(orig_h))
 
-    keep = _apply_nms(boxes_f, scores_f, iou_thre)
-    return boxes_f[keep].cpu(), scores_f[keep].cpu(), cls_f[keep].cpu()
+    keep = _apply_class_aware_nms(boxes_f, scores_f, cls_f, iou_thre)
+    return boxes_f[keep].cpu(), scores_f[keep].cpu(), cls_f[keep].float().cpu()
 
 
 # ---------------------------------------------------------------------------
@@ -284,7 +305,7 @@ def _postprocess(
 
 
 class YOLOX:
-    """YOLOX model wrapper compatible with the Ultralytics YOLO API.
+    """YOLOX model wrapper with an Ultralytics-style API.
 
     Example::
 
@@ -340,7 +361,6 @@ class YOLOX:
         pretrained_weights: str | None = None,
         on_log: Callable[[str], None] | None = None,
         on_stage_done: Callable[[int, int, str], None] | None = None,
-        **kwargs: Any,
     ) -> YOLOX:
         """Train the model.
 
@@ -580,8 +600,6 @@ class YOLOX:
         iou: float = 0.45,
         device: str = "cpu",
         verbose: bool = False,
-        save: bool = False,
-        **kwargs: Any,
     ) -> list[YOLOXResult]:
         """Run inference.
 
@@ -655,24 +673,42 @@ class YOLOX:
 
     @staticmethod
     def _collect_images(source: str | Path | np.ndarray | list) -> list[np.ndarray]:
+        """Load an image, a non-recursive image directory, or a list of inputs."""
         if isinstance(source, np.ndarray):
             return [source]
         if isinstance(source, (str, Path)):
-            img = cv2.imread(str(source))
-            if img is None:
-                raise ValueError(f"画像を読み込めません: {source}")
-            return [img]
+            path = Path(source)
+            if path.is_dir():
+                image_paths = sorted(
+                    (
+                        candidate
+                        for candidate in path.iterdir()
+                        if candidate.is_file()
+                        and candidate.suffix.lower()
+                        in {".bmp", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
+                    ),
+                    key=lambda candidate: candidate.name.lower(),
+                )
+                if not image_paths:
+                    raise ValueError(f"画像ファイルが見つかりません: {source}")
+                return [YOLOX._read_image(image_path) for image_path in image_paths]
+            return [YOLOX._read_image(path)]
         if isinstance(source, list):
             images = []
             for s in source:
                 if isinstance(s, np.ndarray):
                     images.append(s)
                 else:
-                    img = cv2.imread(str(s))
-                    if img is not None:
-                        images.append(img)
+                    images.append(YOLOX._read_image(Path(s)))
             return images
         raise ValueError(f"未対応の入力タイプ: {type(source)}")
+
+    @staticmethod
+    def _read_image(path: Path) -> np.ndarray:
+        image = cv2.imread(str(path))
+        if image is None:
+            raise ValueError(f"画像を読み込めません: {path}")
+        return image
 
     # ------------------------------------------------------------------
     # Saving and export
@@ -694,11 +730,12 @@ class YOLOX:
         if self._verbose:
             print(f"[YOLOX] モデルを保存しました: {path}")
 
-    def export(self, format: str = "onnx", **kwargs: Any) -> str:
+    def export(self, format: str = "onnx", output_path: str | None = None) -> str:
         """Export the model.
 
         Args:
             format: Export format; currently only ``'onnx'`` is supported.
+            output_path: Destination path for the exported model.
 
         Returns:
             Path to the exported file.
@@ -710,9 +747,9 @@ class YOLOX:
                 f"未対応のエクスポート形式: {format}\n"
                 "現在は 'onnx' のみ対応しています。"
             )
-        return self._export_onnx(**kwargs)
+        return self._export_onnx(output_path)
 
-    def _export_onnx(self, output_path: str | None = None, **kwargs: Any) -> str:
+    def _export_onnx(self, output_path: str | None = None) -> str:
         if output_path is None:
             base = self._model_path or "yolox_model"
             output_path = str(Path(base).with_suffix(".onnx"))
