@@ -1,7 +1,10 @@
+import queue
+import threading
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from ptyolox_garage._trainer import TrainingStopped
 from ptyolox_garage.config import AppConfig
 from ptyolox_garage.gui.app import App
 from ptyolox_garage.gui.export_tab import ExportTab
@@ -99,3 +102,50 @@ def test_background_task_state() -> None:
 
     assert train_tab.is_busy() is True
     assert export_tab.is_busy() is False
+
+
+def test_training_worker_passes_stop_event_and_handles_cancellation(monkeypatch) -> None:
+    tab = object.__new__(TrainTab)
+    tab._model_var = _Value("nano")  # type: ignore[assignment]
+    tab._batch_var = _Value(16)  # type: ignore[assignment]
+    tab._device_var = _Value("cpu")  # type: ignore[assignment]
+    tab._imgsz_var = _Value(640)  # type: ignore[assignment]
+    tab._workers_var = _Value(2)  # type: ignore[assignment]
+    tab._val_split_var = _Value(0.2)  # type: ignore[assignment]
+    tab._stop_event = threading.Event()
+    tab._log_queue = queue.Queue()
+    tab._train_succeeded = True
+    captured: dict[str, object] = {}
+
+    class FakeYOLOX:
+        def __init__(self, model: str, verbose: bool) -> None:
+            pass
+
+        def train(self, **kwargs: object) -> None:
+            captured.update(kwargs)
+            raise TrainingStopped("stopped")
+
+    monkeypatch.setattr("ptyolox_garage.gui.train_tab.YOLOX", FakeYOLOX)
+
+    tab._run_training("data.yaml", [10, 20])
+
+    assert captured["stop_event"] is tab._stop_event
+    assert tab._train_succeeded is False
+    assert tab._log_queue.get_nowait() is not None
+    assert tab._log_queue.get_nowait() is None
+
+
+def test_stop_request_disables_button_and_explains_stage_boundary() -> None:
+    tab = object.__new__(TrainTab)
+    tab._stop_event = threading.Event()
+    button_updates: list[dict[str, str]] = []
+    logs: list[str] = []
+    tab._stop_btn = SimpleNamespace(config=lambda **kwargs: button_updates.append(kwargs))
+    tab._append_log = logs.append
+
+    tab._stop()
+
+    assert tab._stop_event.is_set()
+    assert button_updates == [{"state": "disabled"}]
+    assert len(logs) == 1
+    assert "current stage" in logs[0] or "現在のステージ" in logs[0]

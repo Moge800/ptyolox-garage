@@ -18,9 +18,9 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .config import AppConfig, ProfileParams
-    from .wrapper import YOLOX, YOLOXBoxes, YOLOXResult
+    from .wrapper import YOLOX, TrainingStopped, YOLOXBoxes, YOLOXResult
 
-__all__ = ["YOLOX", "YOLOXBoxes", "YOLOXResult", "AppConfig", "ProfileParams"]
+__all__ = ["TrainingStopped", "YOLOX", "YOLOXBoxes", "YOLOXResult", "AppConfig", "ProfileParams"]
 
 __version__ = "0.1.0"
 
@@ -31,7 +31,7 @@ def __getattr__(name: str) -> Any:
         from . import config
 
         value = getattr(config, name)
-    elif name in {"YOLOX", "YOLOXBoxes", "YOLOXResult"}:
+    elif name in {"TrainingStopped", "YOLOX", "YOLOXBoxes", "YOLOXResult"}:
         from . import wrapper
 
         value = getattr(wrapper, name)

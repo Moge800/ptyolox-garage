@@ -31,6 +31,7 @@ Model storage format (torch.save):
 from __future__ import annotations
 
 import json
+import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -42,8 +43,10 @@ import torch
 import torch.nn as nn
 import yaml
 
-from ._trainer import _YOLOXTrainer
+from ._trainer import TrainingStopped, _YOLOXTrainer
 from .dataset import _MODEL_CONFIGS, DatasetPreparer
+
+__all__ = ["TrainingStopped", "YOLOX", "YOLOXBoxes", "YOLOXResult"]
 
 # ---------------------------------------------------------------------------
 # Model-size normalization
@@ -361,6 +364,7 @@ class YOLOX:
         pretrained_weights: str | None = None,
         on_log: Callable[[str], None] | None = None,
         on_stage_done: Callable[[int, int, str], None] | None = None,
+        stop_event: threading.Event | None = None,
     ) -> YOLOX:
         """Train the model.
 
@@ -376,6 +380,7 @@ class YOLOX:
                 use the model previously loaded with ``YOLOX("model.pt")``.
             on_log: Log callback used by the GUI.
             on_stage_done: Stage-completion callback used by the GUI.
+            stop_event: Signal that stops before the next training stage.
 
         Returns:
             This instance, allowing method chaining.
@@ -447,6 +452,7 @@ class YOLOX:
             epoch_schedule=epoch_schedule,
             on_log=on_log,
             on_stage_done=on_stage_done,
+            stop_event=stop_event,
         )
 
         # 3. Package the model and assign it to self.model.

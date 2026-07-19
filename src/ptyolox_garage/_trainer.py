@@ -21,6 +21,10 @@ from typing import Any
 
 from .dataset import _MODEL_CONFIGS
 
+
+class TrainingStopped(RuntimeError):
+    """Raised when a staged training run is stopped between stages."""
+
 # ---------------------------------------------------------------------------
 # Log redirection
 # ---------------------------------------------------------------------------
@@ -219,6 +223,8 @@ class _YOLOXTrainer:
         Returns:
             Path to the final checkpoint.
         """
+        self._raise_if_stopped(stop_event, 0, len(epoch_schedule), on_log)
+
         try:
             import torch
             from yolox.core.trainer import Trainer
@@ -239,13 +245,7 @@ class _YOLOXTrainer:
         last_ckpt_path = ""
 
         for i, target_epoch in enumerate(epoch_schedule):
-            if stop_event and stop_event.is_set():
-                msg = f"[Trainer] 中断 (Stage {i}/{len(epoch_schedule)})"
-                if on_log:
-                    on_log(msg)
-                else:
-                    print(msg)
-                break
+            self._raise_if_stopped(stop_event, i, len(epoch_schedule), on_log)
 
             if on_log:
                 on_log(
@@ -312,6 +312,24 @@ class _YOLOXTrainer:
                 on_stage_done(i, target_epoch, last_ckpt_path)
 
         return last_ckpt_path
+
+    @staticmethod
+    def _raise_if_stopped(
+        stop_event: threading.Event | None,
+        stage_index: int,
+        total_stages: int,
+        on_log: Callable[[str], None] | None,
+    ) -> None:
+        """Raise a cancellation signal before starting the next stage."""
+        if stop_event is None or not stop_event.is_set():
+            return
+
+        msg = f"[Trainer] 中断 (Stage {stage_index}/{total_stages})"
+        if on_log:
+            on_log(msg)
+        else:
+            print(msg)
+        raise TrainingStopped(msg)
 
     def package_model(
         self,

@@ -2,6 +2,7 @@
 
 import subprocess
 import sys
+import threading
 from pathlib import Path
 
 import cv2
@@ -10,6 +11,8 @@ import pytest
 import torch
 import torch.nn as nn
 
+import ptyolox_garage.wrapper as wrapper_module
+from ptyolox_garage._trainer import TrainingStopped, _YOLOXTrainer
 from ptyolox_garage.wrapper import (
     YOLOX,
     YOLOXBoxes,
@@ -301,6 +304,68 @@ class TestUnsupportedKeywordArguments:
     def test_export_rejects_unknown_keyword_argument(self) -> None:
         with pytest.raises(TypeError, match="unexpected keyword argument"):
             YOLOX("l", verbose=False).export(unsupported=True)
+
+
+# ---------------------------------------------------------------------------
+# Training cancellation
+# ---------------------------------------------------------------------------
+
+
+class TestTrainingCancellation:
+    def test_trainer_stops_before_loading_dependencies(self, tmp_path: Path) -> None:
+        trainer = _YOLOXTrainer(
+            model_size="nano",
+            num_classes=1,
+            dataset_dir=str(tmp_path / "dataset"),
+            output_dir=str(tmp_path / "output"),
+        )
+        stop_event = threading.Event()
+        stop_event.set()
+        logs: list[str] = []
+
+        with pytest.raises(TrainingStopped, match="中断"):
+            trainer.train_sequential([10], on_log=logs.append, stop_event=stop_event)
+
+        assert logs == ["[Trainer] 中断 (Stage 0/1)"]
+
+    def test_yolox_train_passes_stop_event_to_trainer(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        data_path = tmp_path / "data.yaml"
+        data_path.write_text(
+            "coco_json: labels.json\nimages_dir: images\noutput_dir: output\n",
+            encoding="utf-8",
+        )
+        captured: dict[str, object] = {}
+
+        class FakePreparer:
+            def __init__(self, **kwargs: object) -> None:
+                pass
+
+            def prepare(self) -> tuple[dict[int, str], int]:
+                return {0: "part"}, 1
+
+        class FakeTrainer:
+            def __init__(self, **kwargs: object) -> None:
+                pass
+
+            def train_sequential(self, **kwargs: object) -> str:
+                captured.update(kwargs)
+                raise TrainingStopped("stopped")
+
+        monkeypatch.setattr(wrapper_module, "DatasetPreparer", FakePreparer)
+        monkeypatch.setattr(wrapper_module, "_YOLOXTrainer", FakeTrainer)
+        stop_event = threading.Event()
+
+        with pytest.raises(TrainingStopped, match="stopped"):
+            YOLOX("nano", verbose=False).train(str(data_path), stop_event=stop_event)
+
+        assert captured["stop_event"] is stop_event
+
+    def test_training_stopped_is_a_public_export(self) -> None:
+        from ptyolox_garage import TrainingStopped as PublicTrainingStopped
+
+        assert PublicTrainingStopped is TrainingStopped
 
 
 class _DummyModel(nn.Module):

@@ -53,6 +53,7 @@ def train(
     pretrained_weights: str | None = None,
     on_log: Callable[[str], None] | None = None,
     on_stage_done: Callable[[int, int, str], None] | None = None,
+    stop_event: threading.Event | None = None,
 ) -> "YOLOX"
 ```
 
@@ -70,8 +71,11 @@ Train a YOLOX model. Executes training in stages according to the epoch schedule
 | `pretrained_weights` | Path to pretrained weights |
 | `on_log` | Log output callback `(text: str) -> None` |
 | `on_stage_done` | Stage completion callback `(stage_idx, epoch, ckpt_path) -> None` |
+| `stop_event` | Stops training before the next stage; the active stage completes first |
 
 **Returns:** `YOLOX` (for method chaining)
+
+**Raises:** `TrainingStopped` when `stop_event` is set before a stage begins.
 
 ---
 
