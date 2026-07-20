@@ -70,6 +70,7 @@ Run inference on single images using a trained model.
 3. Run inference to display result image and detection list
 
 > The model is lazily loaded and only reloaded when the path changes.
+> PyTorch checkpoint files such as `.pt` can execute arbitrary code when loaded. Confirm the GUI warning only for files from a trusted source.
 
 ---
 
@@ -95,6 +96,7 @@ Real-time object detection from a USB camera.
 4. Click **Stop** to stop
 
 > Frames are updated targeting approximately 30fps.
+> Confirm the model-file security warning only when you trust the file's source.
 
 ---
 
@@ -114,6 +116,8 @@ Export trained models to ONNX format.
 1. Select input model (output path is auto-suggested)
 2. Click **Export** to run export
 3. Status displays green (success) or red (error)
+
+> PyTorch checkpoint files such as `.pt` can execute arbitrary code when loaded. Confirm the GUI warning only for files from a trusted source.
 
 ---
 
