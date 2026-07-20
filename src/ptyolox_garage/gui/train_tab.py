@@ -10,6 +10,7 @@ from typing import Any
 
 import beep_lite
 
+from .._trainer import TrainingStopped
 from ..config import AppConfig
 from ..i18n import tr
 from ..wrapper import YOLOX
@@ -31,7 +32,7 @@ class TrainTab(ttk.Frame):
         self._running = False
         self._stop_event = threading.Event()
         self._log_queue: queue.Queue[str | None] = queue.Queue()
-        self._train_succeeded = False
+        self._terminal_state: str | None = None
 
         self._build()
         self.load_profile(profile_var.get())
@@ -134,7 +135,10 @@ class TrainTab(ttk.Frame):
         self._start_btn = ttk.Button(btn_frame, text=tr("学習開始", "Start Training"), command=self._start)
         self._start_btn.pack(side="left", expand=True, fill="x", padx=(0, 2))
         self._stop_btn = ttk.Button(
-            btn_frame, text=tr("停止", "Stop"), command=self._stop, state="disabled"
+            btn_frame,
+            text=tr("ステージ完了後に停止", "Stop After Stage"),
+            command=self._stop,
+            state="disabled",
         )
         self._stop_btn.pack(side="left", expand=True, fill="x", padx=(2, 0))
 
@@ -208,6 +212,7 @@ class TrainTab(ttk.Frame):
             return
 
         self._stop_event.clear()
+        self._terminal_state = None
         self._set_running(True)
         self._progress["maximum"] = len(epoch_schedule)
         self._progress["value"] = 0
@@ -224,7 +229,13 @@ class TrainTab(ttk.Frame):
 
     def _stop(self) -> None:
         self._stop_event.set()
-        self._append_log(tr("--- 停止リクエスト送信 ---", "--- Stop requested ---"))
+        self._stop_btn.config(state="disabled")
+        self._append_log(
+            tr(
+                "--- 現在のステージ完了後に停止します ---",
+                "--- Training will stop after the current stage ---",
+            )
+        )
 
     def _run_training(self, data_path: str, epoch_schedule: list[int]) -> None:
         try:
@@ -239,12 +250,16 @@ class TrainTab(ttk.Frame):
                 val_split=self._val_split_var.get(),
                 on_log=self._log_queue.put,
                 on_stage_done=self._on_stage_done,
+                stop_event=self._stop_event,
             )
             self._log_queue.put(tr("[完了] 全ステージの学習が終了しました。", "[Done] All training stages completed."))
-            self._train_succeeded = True
+            self._terminal_state = "succeeded"
+        except TrainingStopped:
+            self._log_queue.put(tr("[停止] 学習を停止しました。", "[Stopped] Training stopped."))
+            self._terminal_state = "stopped"
         except Exception as e:
             self._log_queue.put(tr(f"[エラー] {e}", f"[Error] {e}"))
-            self._train_succeeded = False
+            self._terminal_state = "failed"
         finally:
             self._log_queue.put(None)  # Completion sentinel
 
@@ -263,12 +278,14 @@ class TrainTab(ttk.Frame):
                 line = self._log_queue.get_nowait()
                 if line is None:
                     self._set_running(False)
-                    # Update stage progress to its final state.
-                    self._progress["value"] = self._progress["maximum"]
-                    self._stage_label.config(text=tr("完了", "Done"))
-                    if self._train_succeeded:
+                    if self._terminal_state == "succeeded":
+                        self._progress["value"] = self._progress["maximum"]
+                        self._stage_label.config(text=tr("完了", "Done"))
                         beep_lite.ok()
+                    elif self._terminal_state == "stopped":
+                        self._stage_label.config(text=tr("停止", "Stopped"))
                     else:
+                        self._stage_label.config(text=tr("失敗", "Failed"))
                         beep_lite.ng()
                     return
                 self._append_log(line)

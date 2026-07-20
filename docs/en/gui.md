@@ -43,7 +43,7 @@ Train YOLOX models.
 2. Click **Start** to begin training (runs in a background thread)
 3. Training progress is displayed in real-time in the log area
 4. Progress bar shows stage-by-stage progress
-5. Click **Stop** to safely interrupt
+5. Click **Stop After Stage** to stop before the next stage; the active stage completes first
 
 > A beep sound notifies you when training is complete.
 
