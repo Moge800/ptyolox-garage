@@ -21,6 +21,8 @@ jobs:
             os: ubuntu-latest
           - python-version: "3.13"
             os: ubuntu-latest
+          - python-version: "3.12"
+            os: windows-latest
 
     steps:
       - name: Checkout
@@ -69,3 +71,37 @@ jobs:
 
       - name: Check package metadata
         run: uvx twine check dist/*
+
+  windows-wheel-install:
+    runs-on: windows-latest
+    env:
+      UV_PYTHON: "3.12"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build wheel
+        run: uv build --wheel
+
+      - name: Install wheel in an isolated environment
+        shell: pwsh
+        run: |
+          uv venv .wheel-test
+          $wheel = (Get-ChildItem dist/*.whl | Select-Object -First 1).FullName
+          uv pip install --python .wheel-test/Scripts/python.exe $wheel
+
+      - name: Verify installed package imports
+        shell: pwsh
+        run: |
+          .wheel-test/Scripts/python.exe -c "from pathlib import Path; import ptyolox_garage; assert Path('src').resolve() not in Path(ptyolox_garage.__file__).resolve().parents"
+          .wheel-test/Scripts/python.exe -c "from ptyolox_garage import YOLOX; assert YOLOX('nano', verbose=False)._model_size == 'nano'"
+          .wheel-test/Scripts/python.exe -c "from ptyolox_garage_bootstrap import main; assert callable(main)"
