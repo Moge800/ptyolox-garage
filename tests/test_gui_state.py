@@ -114,7 +114,7 @@ def test_training_worker_passes_stop_event_and_handles_cancellation(monkeypatch)
     tab._val_split_var = _Value(0.2)  # type: ignore[assignment]
     tab._stop_event = threading.Event()
     tab._log_queue = queue.Queue()
-    tab._train_succeeded = True
+    tab._terminal_state = None
     captured: dict[str, object] = {}
 
     class FakeYOLOX:
@@ -130,7 +130,7 @@ def test_training_worker_passes_stop_event_and_handles_cancellation(monkeypatch)
     tab._run_training("data.yaml", [10, 20])
 
     assert captured["stop_event"] is tab._stop_event
-    assert tab._train_succeeded is False
+    assert tab._terminal_state == "stopped"
     assert tab._log_queue.get_nowait() is not None
     assert tab._log_queue.get_nowait() is None
 
@@ -149,3 +149,27 @@ def test_stop_request_disables_button_and_explains_stage_boundary() -> None:
     assert button_updates == [{"state": "disabled"}]
     assert len(logs) == 1
     assert "current stage" in logs[0] or "現在のステージ" in logs[0]
+
+
+def test_cancelled_training_keeps_completed_stage_progress() -> None:
+    tab = object.__new__(TrainTab)
+    tab._terminal_state = "stopped"
+    tab._log_queue = queue.Queue()
+    tab._log_queue.put(None)
+    tab._progress = {"maximum": 3, "value": 1}
+    labels: list[str] = []
+    tab._stage_label = SimpleNamespace(config=lambda *, text: labels.append(text))
+    running_states: list[bool] = []
+    tab._set_running = running_states.append
+
+    with patch("ptyolox_garage.gui.train_tab.beep_lite.ok") as ok, patch(
+        "ptyolox_garage.gui.train_tab.beep_lite.ng"
+    ) as ng:
+        tab._poll_log()
+
+    assert running_states == [False]
+    assert tab._progress["value"] == 1
+    assert len(labels) == 1
+    assert labels[0] in {"Stopped", "停止"}
+    ok.assert_not_called()
+    ng.assert_not_called()

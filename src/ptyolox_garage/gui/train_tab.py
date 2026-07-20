@@ -32,7 +32,7 @@ class TrainTab(ttk.Frame):
         self._running = False
         self._stop_event = threading.Event()
         self._log_queue: queue.Queue[str | None] = queue.Queue()
-        self._train_succeeded = False
+        self._terminal_state: str | None = None
 
         self._build()
         self.load_profile(profile_var.get())
@@ -212,6 +212,7 @@ class TrainTab(ttk.Frame):
             return
 
         self._stop_event.clear()
+        self._terminal_state = None
         self._set_running(True)
         self._progress["maximum"] = len(epoch_schedule)
         self._progress["value"] = 0
@@ -252,13 +253,13 @@ class TrainTab(ttk.Frame):
                 stop_event=self._stop_event,
             )
             self._log_queue.put(tr("[完了] 全ステージの学習が終了しました。", "[Done] All training stages completed."))
-            self._train_succeeded = True
+            self._terminal_state = "succeeded"
         except TrainingStopped:
             self._log_queue.put(tr("[停止] 学習を停止しました。", "[Stopped] Training stopped."))
-            self._train_succeeded = False
+            self._terminal_state = "stopped"
         except Exception as e:
             self._log_queue.put(tr(f"[エラー] {e}", f"[Error] {e}"))
-            self._train_succeeded = False
+            self._terminal_state = "failed"
         finally:
             self._log_queue.put(None)  # Completion sentinel
 
@@ -277,12 +278,14 @@ class TrainTab(ttk.Frame):
                 line = self._log_queue.get_nowait()
                 if line is None:
                     self._set_running(False)
-                    # Update stage progress to its final state.
-                    self._progress["value"] = self._progress["maximum"]
-                    self._stage_label.config(text=tr("完了", "Done"))
-                    if self._train_succeeded:
+                    if self._terminal_state == "succeeded":
+                        self._progress["value"] = self._progress["maximum"]
+                        self._stage_label.config(text=tr("完了", "Done"))
                         beep_lite.ok()
+                    elif self._terminal_state == "stopped":
+                        self._stage_label.config(text=tr("停止", "Stopped"))
                     else:
+                        self._stage_label.config(text=tr("失敗", "Failed"))
                         beep_lite.ng()
                     return
                 self._append_log(line)
