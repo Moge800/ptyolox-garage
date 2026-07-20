@@ -20,6 +20,7 @@ jobs:
       - name: Checkout release tag or selected branch
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           ref: >-
             ${{ github.event_name == 'release'
                 && github.event.release.tag_name
@@ -51,6 +52,7 @@ jobs:
       - name: Checkout release tag or selected branch
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           ref: >-
             ${{ github.event_name == 'release'
                 && github.event.release.tag_name
@@ -64,21 +66,35 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Check tag matches package version
+      - name: Build distributions
+        run: uv build
+
+      - name: Check release tag matches built package
         if: github.event_name == 'release'
         shell: bash
         env:
           TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
-          project_version="$(python -c 'import pathlib, tomllib; print(tomllib.loads(pathlib.Path("pyproject.toml").read_text("utf-8"))["project"]["version"])')"
-          if [ "${TAG_NAME}" != "v${project_version}" ]; then
-            echo "::error::release tag must match v<project.version>"
-            printf 'tag: %s\nexpected: v%s\n' "${TAG_NAME}" "${project_version}"
+          package_version="$(python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          wheel = next(Path("dist").glob("*.whl"))
+          with ZipFile(wheel) as archive:
+              metadata = next(name for name in archive.namelist() if name.endswith(".dist-info/METADATA"))
+              for line in archive.read(metadata).decode("utf-8").splitlines():
+                  if line.startswith("Version: "):
+                      print(line.removeprefix("Version: "))
+                      break
+              else:
+                  raise SystemExit("wheel metadata does not contain a version")
+          PY
+          )"
+          if [ "${TAG_NAME}" != "v${package_version}" ]; then
+            echo "::error::release tag must match the built package version"
+            printf 'tag: %s\nbuilt package: v%s\n' "${TAG_NAME}" "${package_version}"
             exit 1
           fi
-
-      - name: Build distributions
-        run: uv build
 
       - name: Check package metadata
         run: uvx twine check dist/*
