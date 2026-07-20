@@ -104,11 +104,11 @@ PyPI公開にはTrusted Publishingを使用します。PyPI側のPublisherには
 | Workflow | `publish.yml` |
 | Environment | `pypi` |
 
-公開前に`pyproject.toml`の`project.version`を更新します。その後、
-`v<version>`形式のタグからGitHub Releaseを公開するか、`main`から
-`publish` workflowを手動実行します。Releaseタグは`v<project.version>`と
-一致する必要があります。手動実行では`main`のversionを公開し、既存のPyPI
-ファイルはスキップされます。GitHub Releaseでは同一versionのファイルがPyPIに
-既に存在すると失敗し、Release成果物との不一致を防ぎます。Actionsは対象の
-Releaseタグまたは`main`コミットに対してテストとRuffを実行し、wheel/sdist生成、
-PyPI公開、Release起点の場合はReleaseへの成果物添付を実行します。
+パッケージversionはGitタグから自動生成されます。`v<version>`形式のタグで
+GitHub Releaseを公開してください。たとえば、`v0.2.1`からはパッケージversion
+`0.2.1`が生成されます。workflowは生成したwheelのversionとReleaseタグが一致する
+ことを検証します。手動実行では`main`からビルドし、既存のPyPIファイルはスキップ
+されます。GitHub Releaseでは同一versionのファイルがPyPIに既に存在すると失敗し、
+Release成果物との不一致を防ぎます。Actionsは対象のReleaseタグまたは`main`
+コミットに対してテストとRuffを実行し、wheel/sdist生成、PyPI公開、Release起点の
+場合はReleaseへの成果物添付を実行します。
