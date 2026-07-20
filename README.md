@@ -39,6 +39,10 @@ uv sync --group dev
 
 PyTorch builds are hardware-specific. Install the appropriate PyTorch build from the [official selector](https://pytorch.org/get-started/locally/) when CUDA support is required.
 
+## Model Security
+
+PyTorch checkpoint files such as `.pt` can execute arbitrary code when loaded. Only open model files from a trusted source. The GUI asks for confirmation before loading a model file; cancel the dialog when you cannot verify its origin.
+
 ## GUI
 
 ```bash

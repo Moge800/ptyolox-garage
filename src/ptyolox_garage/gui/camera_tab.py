@@ -15,6 +15,7 @@ from PIL import Image, ImageTk
 from ..config import AppConfig
 from ..i18n import tr
 from ..wrapper import YOLOX
+from .model_security import confirm_trusted_model_file
 
 
 class CameraTab(ttk.Frame):
@@ -159,6 +160,8 @@ class CameraTab(ttk.Frame):
         model_path = self._model_var.get().strip()
         if not model_path:
             messagebox.showwarning(tr("入力エラー", "Input Error"), tr("モデルパスを指定してください。", "Specify a model path."))
+            return
+        if not confirm_trusted_model_file(model_path):
             return
 
         try:

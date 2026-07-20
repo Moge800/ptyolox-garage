@@ -12,6 +12,7 @@ from PIL import Image, ImageTk
 from ..config import AppConfig
 from ..i18n import tr
 from ..wrapper import YOLOX
+from .model_security import confirm_trusted_model_file
 
 
 class InferTab(ttk.Frame):
@@ -162,6 +163,8 @@ class InferTab(ttk.Frame):
 
         try:
             if model_path != self._loaded_model_path:
+                if not confirm_trusted_model_file(model_path):
+                    return
                 self._model = YOLOX(model_path)
                 self._loaded_model_path = model_path
 
