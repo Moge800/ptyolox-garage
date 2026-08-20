@@ -42,6 +42,9 @@ onnx_path = model.export(format="onnx")
 print(f"Exported to {onnx_path}")
 ```
 
+The graph accepts letterboxed BGR `float32` tensors in the `0..255` range.
+It returns decoded candidate predictions before confidence filtering and NMS.
+
 ---
 
 ## Using the GUI

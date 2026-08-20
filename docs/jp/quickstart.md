@@ -42,6 +42,9 @@ onnx_path = model.export(format="onnx")
 print(f"Exported to {onnx_path}")
 ```
 
+グラフにはletterbox処理済みのBGR `float32` tensorを値域`0..255`で入力します。
+出力はconfidence filteringとNMSを適用する前の候補predictionです。
+
 ---
 
 ## GUI で使う

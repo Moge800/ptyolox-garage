@@ -31,6 +31,8 @@ Model storage format (torch.save):
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 import threading
 import time
 from collections.abc import Callable
@@ -46,6 +48,7 @@ import yaml
 from ._model_io import (
     assert_all_on_cpu,
     model_device_label,
+    model_devices,
     temporary_model_device,
 )
 from ._trainer import TrainingStopped, _YOLOXTrainer
@@ -788,26 +791,58 @@ class YOLOX:
             base = self._model_path or "yolox_model"
             output_path = str(Path(base).with_suffix(".onnx"))
 
+        output = Path(output_path)
+        if not output.parent.is_dir():
+            raise FileNotFoundError(
+                f"ONNX出力先のディレクトリが見つかりません: {output.parent}"
+            )
+
         dummy = torch.zeros(1, 3, *self._input_size)
-        prev_device = self._current_device
-        model_cpu = self.model.cpu().eval()  # type: ignore[union-attr]  # ty: ignore[unresolved-attribute]
-
-        torch.onnx.export(
-            model_cpu,
-            (dummy,),
-            output_path,
-            input_names=["images"],
-            output_names=["output"],
-            opset_version=11,
-            dynamic_axes={"images": {0: "batch"}, "output": {0: "batch"}},
+        original_training = self.model.training  # type: ignore[union-attr]
+        original_devices = model_devices(self.model)  # type: ignore[arg-type]
+        descriptor, temporary_name = tempfile.mkstemp(
+            prefix=f".{output.stem}.",
+            suffix=".tmp.onnx",
+            dir=output.parent,
         )
+        os.close(descriptor)
+        temporary_path = Path(temporary_name)
 
-        if prev_device != "cpu":
-            self.model = self.model.to(prev_device)  # type: ignore[union-attr]  # ty: ignore[unresolved-attribute]
-            self._current_device = prev_device
+        try:
+            with temporary_model_device(self.model, "cpu") as model:  # type: ignore[arg-type]
+                try:
+                    model.eval()
+                    torch.onnx.export(
+                        model,
+                        (dummy,),
+                        str(temporary_path),
+                        input_names=["images"],
+                        output_names=["output"],
+                        opset_version=11,
+                        # Keep the deployment contract on opset 11 without
+                        # requiring the newer onnxscript exporter.
+                        dynamo=False,
+                        dynamic_axes={
+                            "images": {0: "batch"},
+                            "output": {0: "batch"},
+                        },
+                    )
+                finally:
+                    model.train(original_training)
 
-        print(f"[YOLOX] ONNX エクスポート完了: {output_path}")
-        return output_path
+            import onnx
+
+            exported_model = onnx.load(str(temporary_path))
+            onnx.checker.check_model(exported_model)
+            os.replace(temporary_path, output)
+        finally:
+            temporary_path.unlink(missing_ok=True)
+            if len(original_devices) == 1:
+                self._current_device = original_devices[0]
+
+        if self._verbose:
+            print(f"[YOLOX] ONNX エクスポート完了: {output}")
+        return str(output)
 
     # ------------------------------------------------------------------
     # data.yaml loading
