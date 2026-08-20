@@ -123,6 +123,19 @@ def export(self, format: str = "onnx", output_path: str | None = None) -> str
 
 **戻り値:** 出力ファイルのパス
 
+ONNXグラフのインターフェースは次の仕様で固定します。
+
+- `images`: `float32[batch, 3, height, width]`。BGR、値域`0..255`、
+  アスペクト比を維持したletterbox処理済みで余白値は`114`
+- `output`: `float32[batch, anchors, 5 + num_classes]`。center-x、center-y、
+  width、height、object confidence、各class confidenceを格納
+- Opset 11、batch軸のみ可変、入力解像度はcheckpointの設定で固定
+- confidence filtering、元画像座標への復元、class-aware NMSはONNXの外で実行
+
+エクスポートはCPUで実行します。成功・失敗にかかわらず、メモリ上のモデルは元の
+deviceとtrain/eval状態へ戻ります。ONNX検証に成功した完成ファイルだけが指定した
+出力先を置き換えます。
+
 ---
 
 ### `fuse()`

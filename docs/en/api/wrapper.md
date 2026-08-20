@@ -123,6 +123,20 @@ Export the model to the specified format.
 
 **Returns:** Output file path
 
+The ONNX graph uses the following stable interface:
+
+- `images`: `float32[batch, 3, height, width]`, BGR values in the `0..255`
+  range after aspect-ratio-preserving letterbox padding with value `114`
+- `output`: `float32[batch, anchors, 5 + num_classes]`, containing
+  center-x, center-y, width, height, object confidence, and class confidences
+- Opset 11, with a dynamic batch axis and fixed checkpoint input resolution
+- Confidence filtering, coordinate restoration, and class-aware NMS remain
+  outside the ONNX graph
+
+Export runs on CPU. The in-memory model returns to its original device and
+train/eval state even when export fails. A completed file replaces the requested
+destination only after ONNX validation succeeds.
+
 ---
 
 ### `fuse()`
