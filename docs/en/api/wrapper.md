@@ -54,6 +54,7 @@ def train(
     on_log: Callable[[str], None] | None = None,
     on_stage_done: Callable[[int, int, str], None] | None = None,
     stop_event: threading.Event | None = None,
+    package_to_cpu: bool = True,
 ) -> "YOLOX"
 ```
 
@@ -72,6 +73,7 @@ Train a YOLOX model. Executes training in stages according to the epoch schedule
 | `on_log` | Log output callback `(text: str) -> None` |
 | `on_stage_done` | Stage completion callback `(stage_idx, epoch, ckpt_path) -> None` |
 | `stop_event` | Stops training before the next stage; the active stage completes first |
+| `package_to_cpu` | Save the final `.pt` package with CPU tensors for portable deployment |
 
 **Returns:** `YOLOX` (for method chaining)
 
@@ -138,10 +140,18 @@ Fuse BatchNorm layers into convolutions for faster inference.
 ### `save()`
 
 ```python
-def save(self, path: str) -> None
+def save(self, path: str, *, to_cpu: bool = True) -> None
 ```
 
-Save the model as a `.pt` file with metadata.
+Save the model as a `.pt` file with metadata. By default, all registered model
+parameters and buffers are stored on the CPU so the file can be loaded on a
+CPU-only deployment machine. The in-memory model returns to its original device
+and train/eval state after saving.
+
+| Parameter | Description |
+|-----------|-------------|
+| `path` | Destination `.pt` path |
+| `to_cpu` | Store CPU tensors when `True`; preserve the current device when `False` |
 
 ---
 

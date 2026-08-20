@@ -9,6 +9,7 @@ PTYOLOX Garage is a practical desktop and Python toolkit for training, testing, 
 - Prepare Label Studio COCO exports for training
 - Train YOLOX nano, tiny, s, m, l, and x models with staged epoch schedules
 - Run inference on images, NumPy arrays, directories, and USB cameras
+- Save portable CPU-compatible `.pt` model packages by default
 - Export trained models to ONNX
 - Switch the GUI between English and Japanese
 - Store reusable CPU/GPU configuration profiles
@@ -73,6 +74,9 @@ model.train(
 model = YOLOX("best_model.pt")
 results = model.predict("image.jpg", conf=0.3)
 annotated = results[0].plot()
+
+# Save a model that can be loaded on a CPU-only machine.
+model.save("deployment_model.pt")
 
 # Export to ONNX.
 model.export(format="onnx")

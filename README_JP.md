@@ -9,6 +9,7 @@ PTYOLOX Garageは、[Pixeltable YOLOX](https://github.com/pixeltable/pixeltable-
 - Label StudioのCOCOエクスポートを学習データへ変換
 - YOLOX nano、tiny、s、m、l、xの段階的エポック学習
 - 画像、NumPy配列、ディレクトリ、USBカメラからの推論
+- CPU専用環境でも読み込める `.pt` モデルを既定で保存
 - 学習済みモデルのONNXエクスポート
 - GUIの日本語・英語切り替え
 - CPU/GPU環境ごとの設定プロファイル
@@ -73,6 +74,9 @@ model.train(
 model = YOLOX("best_model.pt")
 results = model.predict("image.jpg", conf=0.3)
 annotated = results[0].plot()
+
+# CPU専用環境へ配布できるモデルとして保存
+model.save("deployment_model.pt")
 
 # ONNXエクスポート
 model.export(format="onnx")
