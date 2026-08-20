@@ -127,11 +127,19 @@ The ONNX graph uses the following stable interface:
 
 - `images`: `float32[batch, 3, height, width]`, BGR values in the `0..255`
   range after aspect-ratio-preserving letterbox padding with value `114`
+- Letterbox places the resized image at the top-left. Padding is added only to
+  the right and bottom, so coordinate restoration divides by the resize ratio
+  without subtracting an x/y padding offset
 - `output`: `float32[batch, anchors, 5 + num_classes]`, containing
   center-x, center-y, width, height, object confidence, and class confidences
 - Opset 11, with a dynamic batch axis and fixed checkpoint input resolution
 - Confidence filtering, coordinate restoration, and class-aware NMS remain
   outside the ONNX graph
+
+For each candidate, the class ID is the index of the maximum class confidence.
+The final detection score is `objectness * max(class confidence)`. Confidence
+filtering compares this combined score with the configured threshold, and
+class-aware NMS ranks the remaining candidates by the same score.
 
 Export runs on CPU. The in-memory model returns to its original device and
 train/eval state even when export fails. A completed file replaces the requested
