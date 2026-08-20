@@ -54,6 +54,7 @@ def train(
     on_log: Callable[[str], None] | None = None,
     on_stage_done: Callable[[int, int, str], None] | None = None,
     stop_event: threading.Event | None = None,
+    package_to_cpu: bool = True,
 ) -> "YOLOX"
 ```
 
@@ -72,6 +73,7 @@ YOLOX モデルを学習します。エポックスケジュールに従って�
 | `on_log` | ログ出力コールバック `(text: str) -> None` |
 | `on_stage_done` | ステージ完了コールバック `(stage_idx, epoch, ckpt_path) -> None` |
 | `stop_event` | 次のステージ開始前に停止するシグナル。実行中のステージは完了します |
+| `package_to_cpu` | 配布しやすいよう最終 `.pt` をCPU tensorで保存 |
 
 **戻り値:** `YOLOX` (メソッドチェーン用)
 
@@ -138,10 +140,17 @@ BatchNorm レイヤーを畳み込みに融合し、推論を高速化します�
 ### `save()`
 
 ```python
-def save(self, path: str) -> None
+def save(self, path: str, *, to_cpu: bool = True) -> None
 ```
 
-モデルをメタデータ付き `.pt` ファイルとして保存します。
+モデルをメタデータ付き `.pt` ファイルとして保存します。既定では登録済みの
+parametersとbuffersをすべてCPUに配置して保存するため、CPU専用の実機でも
+読み込めます。保存後、メモリ上のモデルは元のdeviceとtrain/eval状態へ戻ります。
+
+| 引数 | 説明 |
+|------|------|
+| `path` | 出力する `.pt` のパス |
+| `to_cpu` | `True`ならCPU tensorで保存、`False`なら現在のdeviceを維持 |
 
 ---
 

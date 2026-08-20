@@ -85,6 +85,8 @@ def package_model(
     class_names: dict[int, str],
     checkpoint_path: str | None = None,
     output_model_path: str | None = None,
+    *,
+    to_cpu: bool = True,
 ) -> str
 ```
 
@@ -95,6 +97,7 @@ Packages a training checkpoint into a YOLOX-compatible `.pt` file.
 | `class_names` | Class ID → class name mapping |
 | `checkpoint_path` | Source checkpoint. Auto-searches for best if `None` |
 | `output_model_path` | Output path. Auto-generated if `None` |
+| `to_cpu` | Package with CPU tensors when `True`; use the training device when `False` |
 
 **Returns:** Output file path
 

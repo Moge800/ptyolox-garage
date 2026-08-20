@@ -371,9 +371,14 @@ class TestTrainingCancellation:
 class _DummyModel(nn.Module):
     """Module-level dummy model that torch.save can pickle."""
 
+    def __init__(self) -> None:
+        super().__init__()
+        self.scale = nn.Parameter(torch.tensor(1.0))
+        self.register_buffer("offset", torch.tensor(0.0))
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         b = x.shape[0]
-        return torch.zeros(b, 100, 6)  # [batch, anchors, 5+nc]
+        return torch.zeros(b, 100, 6) * self.scale + self.offset
 
 
 # ---------------------------------------------------------------------------
@@ -404,6 +409,14 @@ class TestYOLOXSaveLoad:
         model.save(save_path)
         assert Path(save_path).exists()
 
+        saved = torch.load(save_path, weights_only=False)
+        assert saved["saved_device"] == "cpu"
+        assert saved["model"].training is False
+        tensors = list(saved["model"].parameters()) + list(saved["model"].buffers())
+        assert tensors
+        assert all(tensor.device.type == "cpu" for tensor in tensors)
+        assert model.model.training is False
+
     def test_reload_saved(self, tmp_path: Path) -> None:
         pt_path = self._make_mock_pt(tmp_path)
         model = YOLOX(pt_path, verbose=False)
@@ -413,6 +426,65 @@ class TestYOLOXSaveLoad:
         model2 = YOLOX(save_path, verbose=False)
         assert model2._class_names == {0: "cat"}
         assert model2._num_classes == 1
+
+    def test_save_restores_training_mode_on_failure(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        model = YOLOX(self._make_mock_pt(tmp_path), verbose=False)
+        assert model.model is not None
+        model.model.train()
+
+        def fail_save(*args: object, **kwargs: object) -> None:
+            raise OSError("disk full")
+
+        monkeypatch.setattr(torch, "save", fail_save)
+
+        with pytest.raises(OSError, match="disk full"):
+            model.save(str(tmp_path / "failed.pt"))
+
+        assert model.model.training is True
+
+    def test_train_passes_package_to_cpu_to_trainer(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        data_path = tmp_path / "data.yaml"
+        data_path.write_text(
+            "coco_json: labels.json\n"
+            "images_dir: images\n"
+            f"output_dir: {tmp_path.as_posix()}/output\n",
+            encoding="utf-8",
+        )
+        captured: dict[str, object] = {}
+
+        class FakePreparer:
+            def __init__(self, **kwargs: object) -> None:
+                pass
+
+            def prepare(self) -> tuple[dict[int, str], int]:
+                return {0: "part"}, 1
+
+        class FakeTrainer:
+            def __init__(self, **kwargs: object) -> None:
+                pass
+
+            def train_sequential(self, **kwargs: object) -> str:
+                return "checkpoint.pth"
+
+            def package_model(self, **kwargs: object) -> str:
+                captured.update(kwargs)
+                return str(tmp_path / "packaged.pt")
+
+        monkeypatch.setattr(wrapper_module, "DatasetPreparer", FakePreparer)
+        monkeypatch.setattr(wrapper_module, "_YOLOXTrainer", FakeTrainer)
+        monkeypatch.setattr(
+            YOLOX, "_load_checkpoint", lambda *args, **kwargs: None
+        )
+
+        YOLOX("nano", verbose=False).train(
+            str(data_path), package_to_cpu=False
+        )
+
+        assert captured["to_cpu"] is False
 
 
 # ---------------------------------------------------------------------------

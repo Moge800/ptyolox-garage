@@ -43,6 +43,11 @@ import torch
 import torch.nn as nn
 import yaml
 
+from ._model_io import (
+    assert_all_on_cpu,
+    model_device_label,
+    temporary_model_device,
+)
 from ._trainer import TrainingStopped, _YOLOXTrainer
 from .dataset import _MODEL_CONFIGS, DatasetPreparer
 
@@ -365,6 +370,7 @@ class YOLOX:
         on_log: Callable[[str], None] | None = None,
         on_stage_done: Callable[[int, int, str], None] | None = None,
         stop_event: threading.Event | None = None,
+        package_to_cpu: bool = True,
     ) -> YOLOX:
         """Train the model.
 
@@ -381,6 +387,7 @@ class YOLOX:
             on_log: Log callback used by the GUI.
             on_stage_done: Stage-completion callback used by the GUI.
             stop_event: Signal that stops before the next training stage.
+            package_to_cpu: Save the packaged .pt model with CPU tensors.
 
         Returns:
             This instance, allowing method chaining.
@@ -461,6 +468,7 @@ class YOLOX:
         model_path = trainer.package_model(
             class_names=class_names,
             output_model_path=str(output_path / f"yolox_{self._model_size}.pt"),
+            to_cpu=package_to_cpu,
         )
 
         self._load_checkpoint(model_path, verbose=True)
@@ -720,21 +728,41 @@ class YOLOX:
     # Saving and export
     # ------------------------------------------------------------------
 
-    def save(self, path: str) -> None:
-        """Save the model."""
+    def save(self, path: str, *, to_cpu: bool = True) -> None:
+        """Save the model, using CPU tensors by default.
+
+        Args:
+            path: Destination .pt path.
+            to_cpu: Move the serialized model to CPU for portable loading. The
+                in-memory model is restored to its original device afterward.
+        """
         if self.model is None:
             raise RuntimeError("モデルが読み込まれていません")
-        torch.save(
-            {
-                "model": self.model,
-                "names": self._class_names,
-                "nc": self._num_classes,
-                "input_size": list(self._input_size),
-            },
-            path,
-        )
+
+        original_training = self.model.training
+        target_device = "cpu" if to_cpu else None
+        saved_device = "unknown"
+        with temporary_model_device(self.model, target_device) as model:
+            try:
+                model.eval()
+                if to_cpu:
+                    assert_all_on_cpu(model)
+                saved_device = model_device_label(model)
+                torch.save(
+                    {
+                        "model": model,
+                        "names": self._class_names,
+                        "nc": self._num_classes,
+                        "input_size": list(self._input_size),
+                        "saved_device": saved_device,
+                    },
+                    path,
+                )
+            finally:
+                model.train(original_training)
+
         if self._verbose:
-            print(f"[YOLOX] モデルを保存しました: {path}")
+            print(f"[YOLOX] モデルを保存しました: {path} (device: {saved_device})")
 
     def export(self, format: str = "onnx", output_path: str | None = None) -> str:
         """Export the model.

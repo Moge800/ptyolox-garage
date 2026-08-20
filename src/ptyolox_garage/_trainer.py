@@ -19,6 +19,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from ._model_io import assert_all_on_cpu, model_device_label
 from .dataset import _MODEL_CONFIGS
 
 
@@ -336,6 +337,8 @@ class _YOLOXTrainer:
         class_names: dict[int, str],
         checkpoint_path: str | None = None,
         output_model_path: str | None = None,
+        *,
+        to_cpu: bool = True,
     ) -> str:
         """Convert a checkpoint into a .pt file readable by YOLOX.
 
@@ -344,6 +347,8 @@ class _YOLOXTrainer:
             checkpoint_path: Source checkpoint; discovered automatically if omitted.
             output_model_path: Destination path; defaults to
                 ``output_dir/yolox_{model_size}.pt``.
+            to_cpu: Save the packaged model with CPU tensors. When false, use
+                the trainer device.
 
         Returns:
             Path to the saved .pt file.
@@ -365,7 +370,12 @@ class _YOLOXTrainer:
         else:
             model = state_dict
 
+        target_device = "cpu" if to_cpu else self.device
+        model = model.to(target_device)
         model.eval()
+        if to_cpu:
+            assert_all_on_cpu(model)
+        saved_device = model_device_label(model)
 
         if output_model_path is None:
             self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -379,10 +389,14 @@ class _YOLOXTrainer:
                 "input_size": list(self.input_size),
                 "depth": cfg["depth"],
                 "width": cfg["width"],
+                "saved_device": saved_device,
             },
             output_model_path,
         )
-        print(f"[Trainer] モデルを保存しました: {output_model_path}")
+        print(
+            f"[Trainer] モデルを保存しました: {output_model_path} "
+            f"(device: {saved_device})"
+        )
         return output_model_path
 
     # ------------------------------------------------------------------

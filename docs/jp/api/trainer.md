@@ -85,6 +85,8 @@ def package_model(
     class_names: dict[int, str],
     checkpoint_path: str | None = None,
     output_model_path: str | None = None,
+    *,
+    to_cpu: bool = True,
 ) -> str
 ```
 
@@ -95,6 +97,7 @@ def package_model(
 | `class_names` | クラス ID → クラス名のマッピング |
 | `checkpoint_path` | 変換元のチェックポイント。`None` の場合はベストを自動検索 |
 | `output_model_path` | 出力先パス。`None` の場合は自動生成 |
+| `to_cpu` | `True`ならCPU tensorで保存、`False`なら学習deviceで保存 |
 
 **戻り値:** 出力ファイルのパス
 
