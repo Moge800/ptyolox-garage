@@ -58,6 +58,14 @@ Configuration is stored in the operating system's user configuration directory. 
 
 ## Python API
 
+The installed package version is available without loading the ML runtime:
+
+```python
+import ptyolox_garage
+
+print(ptyolox_garage.__version__)
+```
+
 ```python
 from ptyolox_garage import YOLOX
 

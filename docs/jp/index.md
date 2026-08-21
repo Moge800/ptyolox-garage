@@ -18,6 +18,20 @@ ultralytics YOLO ライクな API と、tkinter ベースの GUI を提供しま
 
 ---
 
+## パッケージバージョン
+
+`ptyolox_garage.__version__`はリリースタグから生成されたインストール済み
+ディストリビューションのバージョンを返します。取得時にPyTorch、OpenCV、wrapperモジュールは
+読み込みません。インストールメタデータのないソースツリー直読みでは`0.0.0+local`を使用します。
+
+```python
+import ptyolox_garage
+
+print(ptyolox_garage.__version__)
+```
+
+---
+
 ## ドキュメント構成
 
 - [インストール](installation.md) — 環境構築と依存パッケージの導入

@@ -58,6 +58,14 @@ GUIには、学習、画像推論、ライブカメラ推論、ONNXエクスポ�
 
 ## Python API
 
+MLランタイムを読み込まずに、インストール済みパッケージのバージョンを取得できます。
+
+```python
+import ptyolox_garage
+
+print(ptyolox_garage.__version__)
+```
+
 ```python
 from ptyolox_garage import YOLOX
 

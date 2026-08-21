@@ -18,6 +18,21 @@ It provides an ultralytics YOLO-like API and a tkinter-based GUI.
 
 ---
 
+## Package Version
+
+`ptyolox_garage.__version__` reports the installed distribution version derived
+from the release tag. Reading it does not import PyTorch, OpenCV, or the wrapper
+module. A direct source-tree import without installed distribution metadata
+uses `0.0.0+local`.
+
+```python
+import ptyolox_garage
+
+print(ptyolox_garage.__version__)
+```
+
+---
+
 ## Documentation
 
 - [Installation](installation.md) — Environment setup and dependencies
