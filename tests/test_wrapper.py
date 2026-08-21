@@ -19,6 +19,7 @@ from ptyolox_garage.wrapper import (
     YOLOXResult,
     _class_aware_nms_fallback,
     _letterbox,
+    _looks_like_model_path,
     _nms_fallback,
     _normalize_model_size,
     _postprocess,
@@ -48,6 +49,27 @@ class TestNormalizeModelSize:
     def test_invalid_raises(self) -> None:
         with pytest.raises(ValueError):
             _normalize_model_size("unknown_model")
+
+
+class TestModelPathDetection:
+    @pytest.mark.parametrize(
+        "model",
+        [
+            "model.pt",
+            "model.pth",
+            "model.checkpoint",
+            "models/model",
+            r"models\model",
+            r"C:\models\model",
+            Path("model"),
+        ],
+    )
+    def test_path_like_values(self, model: str | Path) -> None:
+        assert _looks_like_model_path(model)
+
+    @pytest.mark.parametrize("model", ["unknown", "invalid_model", "xxl"])
+    def test_bare_unknown_values_are_not_paths(self, model: str) -> None:
+        assert not _looks_like_model_path(model)
 
 
 # ---------------------------------------------------------------------------
@@ -256,6 +278,47 @@ class TestYOLOXInit:
     def test_init_with_nonexistent_pt_raises(self) -> None:
         with pytest.raises(FileNotFoundError):
             YOLOX("nonexistent.pt", verbose=False)
+
+    @pytest.mark.parametrize(
+        "model",
+        [
+            "nonexistent.pth",
+            "models/nonexistent",
+            r"models\nonexistent",
+            Path("nonexistent"),
+        ],
+    )
+    def test_init_with_nonexistent_path_raises(self, model: str | Path) -> None:
+        with pytest.raises(FileNotFoundError, match="モデルファイルが見つかりません"):
+            YOLOX(model, verbose=False)
+
+    def test_known_size_wins_over_same_named_file(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        (tmp_path / "l").write_bytes(b"not a checkpoint")
+        monkeypatch.chdir(tmp_path)
+
+        model = YOLOX("l", verbose=False)
+
+        assert model._model_size == "l"
+        assert model._model_path is None
+
+    def test_path_object_disambiguates_same_named_file(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        path = tmp_path / "l"
+        path.write_bytes(b"not a checkpoint")
+        loaded: list[str] = []
+        monkeypatch.setattr(
+            YOLOX,
+            "_load_checkpoint",
+            lambda _self, model_path, _verbose: loaded.append(model_path),
+        )
+
+        model = YOLOX(path, verbose=False)
+
+        assert loaded == [str(path)]
+        assert model._model_path == str(path)
 
     def test_predict_without_model_raises(self) -> None:
         model = YOLOX("l", verbose=False)
