@@ -82,6 +82,20 @@ model.save("deployment_model.pt")
 model.export(format="onnx")
 ```
 
+Checkpoints created by current versions store their model size internally, so
+renaming a `.pt` file does not affect loading or fine-tuning. Inference from a
+legacy `yolox_wrapper` checkpoint does not require a size. To fine-tune a
+legacy checkpoint that has no size metadata, provide the known architecture
+explicitly:
+
+```python
+legacy = YOLOX("legacy-model.pt", model_size="l")
+legacy.train(data="data.yaml")
+```
+
+Checkpoint filenames are never used to infer model size. The explicit value
+must match the architecture that was used to create the legacy model.
+
 ## Dataset Configuration
 
 `data.yaml` points to a Label Studio COCO export and its image directory:

@@ -24,13 +24,19 @@ The `ptyolox_garage.wrapper` module provides the main class that integrates YOLO
 ### Constructor
 
 ```python
-YOLOX(model: str | os.PathLike[str], verbose: bool = True)
+YOLOX(
+    model: str | os.PathLike[str],
+    verbose: bool = True,
+    *,
+    model_size: str | None = None,
+)
 ```
 
 | Parameter | Description |
 |-----------|-------------|
 | `model` | Model size string (e.g., `"l"`) or checkpoint file path |
 | `verbose` | Enable verbose logging |
+| `model_size` | Explicit architecture size for a legacy checkpoint without size metadata |
 
 **Behavior:**
 - Size string → Builds an untrained model architecture
@@ -40,6 +46,22 @@ Known size strings take precedence over same-named files. Pass a `Path` object
 or an explicit relative path such as `./l` to load an extensionless checkpoint
 whose name conflicts with a size. Missing path-like values raise
 `FileNotFoundError`; bare unknown values raise a model-size `ValueError`.
+
+Checkpoint model size is resolved from the stored `model_size`, or from the
+stored `depth` and `width` for older packaged checkpoints. The filename is
+never inspected for a size token. A metadata-free legacy checkpoint can be
+used for inference without `model_size`. Supply `model_size` when fine-tuning
+such a checkpoint, or when loading a metadata-free state dict that must be
+rebuilt into an architecture:
+
+```python
+legacy = YOLOX("legacy-model.pt", model_size="l")
+legacy.train(data="data.yaml")
+```
+
+An explicit size that conflicts with checkpoint metadata raises `ValueError`.
+For a metadata-free legacy checkpoint, the caller is responsible for supplying
+the architecture that was originally used to create the model.
 
 ---
 
@@ -83,6 +105,10 @@ Train a YOLOX model. Executes training in stages according to the epoch schedule
 **Returns:** `YOLOX` (for method chaining)
 
 **Raises:** `TrainingStopped` when `stop_event` is set before a stage begins.
+
+Fine-tuning a loaded legacy checkpoint without size metadata raises
+`ValueError` before dataset preparation. Reload it with the `model_size`
+constructor argument shown above. Inference does not require this migration.
 
 ---
 
@@ -174,6 +200,12 @@ Save the model as a `.pt` file with metadata. By default, all registered model
 parameters and buffers are stored on the CPU so the file can be loaded on a
 CPU-only deployment machine. The in-memory model returns to its original device
 and train/eval state after saving.
+
+The saved metadata includes checkpoint format version, canonical model size,
+depth, and width whenever the model size is known. A model loaded from a legacy
+checkpoint with `model_size=` therefore becomes self-describing when saved
+again. Saving a legacy model whose size remains unknown does not invent size
+metadata.
 
 | Parameter | Description |
 |-----------|-------------|

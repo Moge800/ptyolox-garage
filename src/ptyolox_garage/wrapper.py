@@ -23,7 +23,16 @@ Example:
 
 Model storage format (torch.save):
     torch.save(
-        {"model": model, "names": {0: "cat", 1: "dog"}, "nc": 2, "input_size": [640, 640]},
+        {
+            "format_version": 1,
+            "model_size": "l",
+            "depth": 1.0,
+            "width": 1.0,
+            "model": model,
+            "names": {0: "cat", 1: "dog"},
+            "nc": 2,
+            "input_size": [640, 640],
+        },
         "my_model.pt",
     )
 """
@@ -45,6 +54,11 @@ import torch
 import torch.nn as nn
 import yaml
 
+from ._checkpoint import (
+    _normalize_model_size,
+    checkpoint_model_metadata,
+    resolve_checkpoint_model_size,
+)
 from ._model_io import (
     assert_all_on_cpu,
     model_device_label,
@@ -56,20 +70,10 @@ from .dataset import _MODEL_CONFIGS, DatasetPreparer
 
 __all__ = ["TrainingStopped", "YOLOX", "YOLOXBoxes", "YOLOXResult"]
 
-# ---------------------------------------------------------------------------
-# Model-size normalization
-# ---------------------------------------------------------------------------
 
-
-def _normalize_model_size(s: str) -> str:
-    """Normalize model-size aliases such as 'yolox_l' and 'yolox-l' to 'l'."""
-    normalized = s.lower().removeprefix("yolox_").removeprefix("yolox-")
-    if normalized not in _MODEL_CONFIGS:
-        raise ValueError(
-            f"未対応のモデルサイズ: '{s}'\n"
-            f"使用可能: {list(_MODEL_CONFIGS.keys())} または 'yolox_{{size}}'"
-        )
-    return normalized
+# ---------------------------------------------------------------------------
+# Model argument resolution
+# ---------------------------------------------------------------------------
 
 
 def _looks_like_model_path(model: str | os.PathLike[str]) -> bool:
@@ -349,6 +353,8 @@ class YOLOX:
         self,
         model: str | os.PathLike[str],
         verbose: bool = True,
+        *,
+        model_size: str | None = None,
     ) -> None:
         """Initialize the wrapper.
 
@@ -356,6 +362,8 @@ class YOLOX:
             model: Model-size string such as ``"nano"``, ``"l"``, or
                 ``"yolox_l"``, or a path to a trained checkpoint.
             verbose: Whether to emit detailed logs.
+            model_size: Explicit architecture size for a legacy checkpoint
+                that does not contain size metadata.
         """
         self._verbose = verbose
         self.model: nn.Module | None = None
@@ -365,20 +373,34 @@ class YOLOX:
         self._current_device: str = "cpu"
         self._model_path: str | None = None
         self._model_size: str | None = None
+        explicit_model_size = (
+            _normalize_model_size(model_size) if model_size is not None else None
+        )
 
         if isinstance(model, str):
             try:
-                self._model_size = _normalize_model_size(model)
+                source_model_size = _normalize_model_size(model)
             except ValueError:
                 if not _looks_like_model_path(model):
                     raise
             else:
+                if (
+                    explicit_model_size is not None
+                    and explicit_model_size != source_model_size
+                ):
+                    raise ValueError(
+                        "第一引数とmodel_sizeのモデルサイズが一致しません: "
+                        f"model='{source_model_size}', model_size='{explicit_model_size}'"
+                    )
+                self._model_size = source_model_size
                 if verbose:
                     print(f"[YOLOX] モデルサイズ: {self._model_size} (学習前)")
                 return
 
         path = Path(model)
-        self._load_checkpoint(str(path), verbose)
+        self._load_checkpoint(
+            str(path), verbose, explicit_model_size=explicit_model_size
+        )
         self._model_path = str(path)
 
     # ------------------------------------------------------------------
@@ -420,11 +442,15 @@ class YOLOX:
         Returns:
             This instance, allowing method chaining.
         """
-        # Infer model_size when fine-tuning from a loaded .pt file.
-        if self._model_size is None and self._model_path is not None:
-            self._model_size = self._infer_model_size_from_path(self._model_path)
-
         if self._model_size is None:
+            if self._model_path is not None:
+                raise ValueError(
+                    "このcheckpointにはモデルサイズ情報がありません。\n"
+                    "旧形式のモデルを追加学習する場合は、"
+                    f"YOLOX({self._model_path!r}, model_size='l') "
+                    "のように指定してください。\n"
+                    "推論にはmodel_sizeの指定は必要ありません。"
+                )
             raise RuntimeError("モデルサイズが設定されていません。")
 
         # Reuse the loaded model for fine-tuning when weights were not specified.
@@ -504,51 +530,30 @@ class YOLOX:
         return self
 
     # ------------------------------------------------------------------
-    # Model-size inference
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _infer_model_size_from_path(model_path: str) -> str:
-        """Infer model_size from a trained .pt file.
-
-        Use saved depth and width values when available, otherwise inspect the
-        model filename for a size token.
-        """
-        ckpt = torch.load(model_path, map_location="cpu", weights_only=False)
-        if isinstance(ckpt, dict):
-            depth = ckpt.get("depth")
-            width = ckpt.get("width")
-            if depth is not None and width is not None:
-                depth, width = float(depth), float(width)
-                for size, cfg in _MODEL_CONFIGS.items():
-                    if cfg["depth"] == depth and cfg["width"] == width:
-                        return size
-
-        # Infer from the filename.
-        stem = Path(model_path).stem.lower()
-        for size in _MODEL_CONFIGS:
-            if size in stem:
-                return size
-
-        raise ValueError(
-            f"モデルサイズを自動判定できません: {model_path}\n"
-            "YOLOX('l', ...) のように明示的にモデルサイズを指定してください。"
-        )
-
-    # ------------------------------------------------------------------
     # Model loading
     # ------------------------------------------------------------------
 
-    def _load_checkpoint(self, model_path: str, verbose: bool) -> None:
+    def _load_checkpoint(
+        self,
+        model_path: str,
+        verbose: bool,
+        *,
+        explicit_model_size: str | None = None,
+    ) -> None:
         path = Path(model_path)
         if not path.exists():
             raise FileNotFoundError(f"モデルファイルが見つかりません: {model_path}")
 
         ckpt = torch.load(str(path), map_location="cpu", weights_only=False)
 
+        requested_model_size = explicit_model_size or self._model_size
         if isinstance(ckpt, nn.Module):
+            self._model_size = requested_model_size
             self.model = ckpt
         elif isinstance(ckpt, dict):
+            self._model_size = resolve_checkpoint_model_size(
+                ckpt, requested_model_size
+            )
             model_obj = ckpt.get("model")
             if isinstance(model_obj, nn.Module):
                 self.model = model_obj
@@ -585,12 +590,18 @@ class YOLOX:
             )
 
     def _build_from_state_dict(self, state_dict: dict, ckpt: dict) -> nn.Module:
+        if self._model_size is None:
+            raise ValueError(
+                "state_dict形式のcheckpointにはモデルサイズが必要です。\n"
+                "YOLOX('model.pt', model_size='l') のように指定してください。"
+            )
         try:
             from yolox.models import YoloPafpn, YoloxHead, YoloxModule
 
             nc = int(ckpt.get("nc", 80))
-            depth = float(ckpt.get("depth", 0.33))
-            width = float(ckpt.get("width", 0.50))
+            cfg = _MODEL_CONFIGS[self._model_size]
+            depth = cfg["depth"]
+            width = cfg["width"]
             in_ch = [256, 512, 1024]
 
             backbone = YoloPafpn(depth, width, in_channels=in_ch)
@@ -776,16 +787,15 @@ class YOLOX:
                 if to_cpu:
                     assert_all_on_cpu(model)
                 saved_device = model_device_label(model)
-                torch.save(
-                    {
-                        "model": model,
-                        "names": self._class_names,
-                        "nc": self._num_classes,
-                        "input_size": list(self._input_size),
-                        "saved_device": saved_device,
-                    },
-                    path,
-                )
+                payload = {
+                    "model": model,
+                    "names": self._class_names,
+                    "nc": self._num_classes,
+                    "input_size": list(self._input_size),
+                    "saved_device": saved_device,
+                }
+                payload.update(checkpoint_model_metadata(self._model_size))
+                torch.save(payload, path)
             finally:
                 model.train(original_training)
 

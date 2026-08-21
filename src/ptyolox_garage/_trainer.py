@@ -19,6 +19,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from ._checkpoint import checkpoint_model_metadata
 from ._model_io import assert_all_on_cpu, model_device_label
 from .dataset import _MODEL_CONFIGS
 
@@ -381,18 +382,15 @@ class _YOLOXTrainer:
             self.output_dir.mkdir(parents=True, exist_ok=True)
             output_model_path = str(self.output_dir / f"yolox_{self.model_size}.pt")
 
-        torch.save(
-            {
-                "model": model,
-                "names": class_names,
-                "nc": len(class_names),
-                "input_size": list(self.input_size),
-                "depth": cfg["depth"],
-                "width": cfg["width"],
-                "saved_device": saved_device,
-            },
-            output_model_path,
-        )
+        payload = {
+            "model": model,
+            "names": class_names,
+            "nc": len(class_names),
+            "input_size": list(self.input_size),
+            "saved_device": saved_device,
+        }
+        payload.update(checkpoint_model_metadata(self.model_size))
+        torch.save(payload, output_model_path)
         print(
             f"[Trainer] モデルを保存しました: {output_model_path} "
             f"(device: {saved_device})"

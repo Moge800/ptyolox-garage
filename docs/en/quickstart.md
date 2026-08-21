@@ -34,6 +34,16 @@ for result in results:
     annotated = result.plot()
 ```
 
+Legacy checkpoints without model-size metadata can be used for inference as
+shown above. Specify the known architecture only when fine-tuning one:
+
+```python
+legacy = YOLOX("legacy-model.pt", model_size="l")
+legacy.train(data="data.yaml")
+```
+
+Checkpoint filenames are not used to infer model size.
+
 ### ONNX Export
 
 ```python
