@@ -72,6 +72,21 @@ def _normalize_model_size(s: str) -> str:
     return normalized
 
 
+def _looks_like_model_path(model: str | os.PathLike[str]) -> bool:
+    """Return whether a model argument is intended to be a checkpoint path."""
+    if isinstance(model, os.PathLike):
+        return True
+
+    path = Path(model)
+    return (
+        path.exists()
+        or path.is_absolute()
+        or bool(path.suffix)
+        or "/" in model
+        or "\\" in model
+    )
+
+
 # ---------------------------------------------------------------------------
 # Result objects inspired by Ultralytics Boxes and Results
 # ---------------------------------------------------------------------------
@@ -330,12 +345,16 @@ class YOLOX:
         model.export(format="onnx")
     """
 
-    def __init__(self, model: str, verbose: bool = True) -> None:
+    def __init__(
+        self,
+        model: str | os.PathLike[str],
+        verbose: bool = True,
+    ) -> None:
         """Initialize the wrapper.
 
         Args:
             model: Model-size string such as ``"nano"``, ``"l"``, or
-                ``"yolox_l"``, or a path to a trained .pt model.
+                ``"yolox_l"``, or a path to a trained checkpoint.
             verbose: Whether to emit detailed logs.
         """
         self._verbose = verbose
@@ -347,14 +366,20 @@ class YOLOX:
         self._model_path: str | None = None
         self._model_size: str | None = None
 
-        p = Path(model)
-        if p.suffix == ".pt" or p.exists():
-            self._load_checkpoint(str(p), verbose)
-            self._model_path = str(p)
-        else:
-            self._model_size = _normalize_model_size(model)
-            if verbose:
-                print(f"[YOLOX] モデルサイズ: {self._model_size} (学習前)")
+        if isinstance(model, str):
+            try:
+                self._model_size = _normalize_model_size(model)
+            except ValueError:
+                if not _looks_like_model_path(model):
+                    raise
+            else:
+                if verbose:
+                    print(f"[YOLOX] モデルサイズ: {self._model_size} (学習前)")
+                return
+
+        path = Path(model)
+        self._load_checkpoint(str(path), verbose)
+        self._model_path = str(path)
 
     # ------------------------------------------------------------------
     # Training

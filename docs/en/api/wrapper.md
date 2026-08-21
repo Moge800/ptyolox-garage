@@ -24,17 +24,22 @@ The `ptyolox_garage.wrapper` module provides the main class that integrates YOLO
 ### Constructor
 
 ```python
-YOLOX(model: str, verbose: bool = True)
+YOLOX(model: str | os.PathLike[str], verbose: bool = True)
 ```
 
 | Parameter | Description |
 |-----------|-------------|
-| `model` | Model size string (e.g., `"l"`) or `.pt` file path |
+| `model` | Model size string (e.g., `"l"`) or checkpoint file path |
 | `verbose` | Enable verbose logging |
 
 **Behavior:**
 - Size string → Builds an untrained model architecture
-- `.pt` path → Restores model and settings from checkpoint
+- Checkpoint path, including `.pt` and `.pth` → Restores model and settings from checkpoint
+
+Known size strings take precedence over same-named files. Pass a `Path` object
+or an explicit relative path such as `./l` to load an extensionless checkpoint
+whose name conflicts with a size. Missing path-like values raise
+`FileNotFoundError`; bare unknown values raise a model-size `ValueError`.
 
 ---
 

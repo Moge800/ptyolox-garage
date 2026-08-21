@@ -24,17 +24,22 @@
 ### コンストラクタ
 
 ```python
-YOLOX(model: str, verbose: bool = True)
+YOLOX(model: str | os.PathLike[str], verbose: bool = True)
 ```
 
 | 引数 | 説明 |
 |------|------|
-| `model` | モデルサイズ文字列（`"l"` 等）または `.pt` ファイルパス |
+| `model` | モデルサイズ文字列（`"l"` 等）またはcheckpointファイルパス |
 | `verbose` | 詳細ログ出力の有効化 |
 
 **動作:**
 - サイズ文字列の場合 → 未学習のモデルアーキテクチャを構築
-- `.pt` パスの場合 → チェックポイントからモデルと設定を復元
+- `.pt`や`.pth`などのcheckpointパスの場合 → checkpointからモデルと設定を復元
+
+既知のモデルサイズは同名のファイルより優先されます。サイズ名と衝突する拡張子なしの
+checkpointを読み込む場合は、`Path`オブジェクトまたは`./l`のような明示的な相対パスを
+指定してください。存在しないパス形式の値は`FileNotFoundError`、パスではない未知の値は
+モデルサイズの`ValueError`になります。
 
 ---
 
