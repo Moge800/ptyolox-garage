@@ -91,6 +91,9 @@ def package_model(
 ```
 
 Packages a training checkpoint into a YOLOX-compatible `.pt` file.
+The package stores checkpoint format version, canonical model size, depth, and
+width. Model size is restored from this metadata and never inferred from the
+output filename.
 
 | Parameter | Description |
 |-----------|-------------|

@@ -34,6 +34,16 @@ for result in results:
     annotated = result.plot()
 ```
 
+モデルサイズ情報のない旧checkpointも、上の例のように推論に使用できます。
+追加学習する場合だけ、既知のアーキテクチャを指定します。
+
+```python
+legacy = YOLOX("legacy-model.pt", model_size="l")
+legacy.train(data="data.yaml")
+```
+
+checkpointのファイル名からモデルサイズを推測することはありません。
+
 ### ONNX エクスポート
 
 ```python

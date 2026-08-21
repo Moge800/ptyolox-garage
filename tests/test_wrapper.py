@@ -312,7 +312,7 @@ class TestYOLOXInit:
         monkeypatch.setattr(
             YOLOX,
             "_load_checkpoint",
-            lambda _self, model_path, _verbose: loaded.append(model_path),
+            lambda _self, model_path, _verbose, **_kwargs: loaded.append(model_path),
         )
 
         model = YOLOX(path, verbose=False)
@@ -450,15 +450,126 @@ class _DummyModel(nn.Module):
 
 
 class TestYOLOXSaveLoad:
-    def _make_mock_pt(self, tmp_path: Path) -> str:
+    def _make_mock_pt(
+        self,
+        tmp_path: Path,
+        *,
+        name: str = "dummy.pt",
+        metadata: dict[str, object] | None = None,
+    ) -> str:
         """Create a minimal .pt file."""
         model = _DummyModel()
-        path = str(tmp_path / "dummy.pt")
-        torch.save(
-            {"model": model, "names": {0: "cat"}, "nc": 1, "input_size": [64, 64]},
-            path,
-        )
+        path = str(tmp_path / name)
+        payload: dict[str, object] = {
+            "model": model,
+            "names": {0: "cat"},
+            "nc": 1,
+            "input_size": [64, 64],
+        }
+        if metadata is not None:
+            payload.update(metadata)
+        torch.save(payload, path)
         return path
+
+    def test_legacy_checkpoint_inference_does_not_require_model_size(
+        self, tmp_path: Path
+    ) -> None:
+        model = YOLOX(
+            self._make_mock_pt(tmp_path, name="sjm.pt"), verbose=False
+        )
+
+        results = model.predict(np.zeros((64, 64, 3), dtype=np.uint8))
+
+        assert model._model_size is None
+        assert len(results) == 1
+
+    def test_legacy_checkpoint_filename_does_not_infer_model_size(
+        self, tmp_path: Path
+    ) -> None:
+        model = YOLOX(
+            self._make_mock_pt(tmp_path, name="yolox_l.pt"), verbose=False
+        )
+
+        assert model._model_size is None
+
+    def test_legacy_checkpoint_requires_size_only_for_fine_tuning(
+        self, tmp_path: Path
+    ) -> None:
+        model = YOLOX(self._make_mock_pt(tmp_path), verbose=False)
+
+        with pytest.raises(ValueError, match="model_size='l'"):
+            model.train(str(tmp_path / "missing.yaml"))
+
+    def test_explicit_size_supports_legacy_checkpoint(self, tmp_path: Path) -> None:
+        model = YOLOX(
+            self._make_mock_pt(tmp_path, name="sjm.pt"),
+            verbose=False,
+            model_size="yolox-l",
+        )
+
+        assert model._model_size == "l"
+
+    def test_checkpoint_metadata_restores_size(self, tmp_path: Path) -> None:
+        model = YOLOX(
+            self._make_mock_pt(
+                tmp_path,
+                metadata={
+                    "format_version": 1,
+                    "model_size": "m",
+                    "depth": 0.67,
+                    "width": 0.75,
+                },
+            ),
+            verbose=False,
+        )
+
+        assert model._model_size == "m"
+
+    def test_legacy_dimensions_restore_size_without_filename(
+        self, tmp_path: Path
+    ) -> None:
+        model = YOLOX(
+            self._make_mock_pt(
+                tmp_path,
+                name="arbitrary-name.pt",
+                metadata={"depth": 0.33, "width": 0.375},
+            ),
+            verbose=False,
+        )
+
+        assert model._model_size == "tiny"
+
+    def test_explicit_size_conflict_is_rejected(self, tmp_path: Path) -> None:
+        path = self._make_mock_pt(
+            tmp_path,
+            metadata={
+                "format_version": 1,
+                "model_size": "l",
+                "depth": 1.0,
+                "width": 1.0,
+            },
+        )
+
+        with pytest.raises(ValueError, match="一致しません"):
+            YOLOX(path, verbose=False, model_size="s")
+
+    def test_size_arguments_must_not_conflict(self) -> None:
+        with pytest.raises(ValueError, match="第一引数"):
+            YOLOX("l", verbose=False, model_size="s")
+
+    def test_matching_size_arguments_are_allowed(self) -> None:
+        model = YOLOX("yolox_l", verbose=False, model_size="l")
+
+        assert model._model_size == "l"
+
+    def test_state_dict_checkpoint_without_size_is_rejected(
+        self, tmp_path: Path
+    ) -> None:
+        path = tmp_path / "state-dict.pt"
+        torch.save({"model": {}, "nc": 1}, path)
+
+        with pytest.raises(ValueError, match="state_dict形式"):
+            YOLOX(path, verbose=False)
 
     def test_load_and_save(self, tmp_path: Path) -> None:
         pt_path = self._make_mock_pt(tmp_path)
@@ -473,6 +584,8 @@ class TestYOLOXSaveLoad:
         assert Path(save_path).exists()
 
         saved = torch.load(save_path, weights_only=False)
+        assert saved["format_version"] == 1
+        assert "model_size" not in saved
         assert saved["saved_device"] == "cpu"
         assert saved["model"].training is False
         tensors = list(saved["model"].parameters()) + list(saved["model"].buffers())
@@ -489,6 +602,21 @@ class TestYOLOXSaveLoad:
         model2 = YOLOX(save_path, verbose=False)
         assert model2._class_names == {0: "cat"}
         assert model2._num_classes == 1
+
+    def test_save_preserves_explicit_model_size(self, tmp_path: Path) -> None:
+        model = YOLOX(
+            self._make_mock_pt(tmp_path), verbose=False, model_size="tiny"
+        )
+        save_path = tmp_path / "saved-with-size.pt"
+
+        model.save(str(save_path))
+
+        saved = torch.load(save_path, weights_only=False)
+        assert saved["format_version"] == 1
+        assert saved["model_size"] == "tiny"
+        assert saved["depth"] == pytest.approx(0.33)
+        assert saved["width"] == pytest.approx(0.375)
+        assert YOLOX(save_path, verbose=False)._model_size == "tiny"
 
     def test_save_restores_training_mode_on_failure(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

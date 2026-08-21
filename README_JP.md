@@ -82,6 +82,19 @@ model.save("deployment_model.pt")
 model.export(format="onnx")
 ```
 
+現行バージョンで作成したcheckpointはモデルサイズを内部に保存するため、`.pt`
+ファイルを改名しても読み込みや追加学習に影響しません。旧`yolox_wrapper`
+checkpointの推論にサイズ指定は不要です。サイズ情報のない旧checkpointを
+追加学習する場合は、既知のアーキテクチャを明示してください。
+
+```python
+legacy = YOLOX("legacy-model.pt", model_size="l")
+legacy.train(data="data.yaml")
+```
+
+checkpointのファイル名からモデルサイズを推測することはありません。明示する
+値は、旧モデルの作成時に使用したアーキテクチャと一致させてください。
+
 ## データセット設定
 
 `data.yaml`にLabel StudioのCOCO JSONと画像ディレクトリを指定します。

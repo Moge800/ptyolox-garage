@@ -89,3 +89,9 @@ def test_package_model_honors_to_cpu_false(
     assert result == str(output_path)
     assert model.requested_devices == ["cuda:1"]
     assert saved["path"] == str(output_path)
+    payload = saved["payload"]
+    assert isinstance(payload, dict)
+    assert payload["format_version"] == 1
+    assert payload["model_size"] == "nano"
+    assert payload["depth"] == pytest.approx(0.33)
+    assert payload["width"] == pytest.approx(0.25)

@@ -24,13 +24,19 @@
 ### コンストラクタ
 
 ```python
-YOLOX(model: str | os.PathLike[str], verbose: bool = True)
+YOLOX(
+    model: str | os.PathLike[str],
+    verbose: bool = True,
+    *,
+    model_size: str | None = None,
+)
 ```
 
 | 引数 | 説明 |
 |------|------|
 | `model` | モデルサイズ文字列（`"l"` 等）またはcheckpointファイルパス |
 | `verbose` | 詳細ログ出力の有効化 |
+| `model_size` | サイズ情報を持たない旧checkpointのアーキテクチャを明示指定 |
 
 **動作:**
 - サイズ文字列の場合 → 未学習のモデルアーキテクチャを構築
@@ -40,6 +46,19 @@ YOLOX(model: str | os.PathLike[str], verbose: bool = True)
 checkpointを読み込む場合は、`Path`オブジェクトまたは`./l`のような明示的な相対パスを
 指定してください。存在しないパス形式の値は`FileNotFoundError`、パスではない未知の値は
 モデルサイズの`ValueError`になります。
+
+checkpoint内の`model_size`、または旧パッケージの`depth`と`width`からモデルサイズを
+復元します。ファイル名に含まれる文字列からサイズを推測することはありません。
+サイズ情報のない旧checkpointも推論にはそのまま使用できます。追加学習、または
+アーキテクチャ再構築が必要なstate dict形式の読み込みでは明示指定します。
+
+```python
+legacy = YOLOX("legacy-model.pt", model_size="l")
+legacy.train(data="data.yaml")
+```
+
+明示値とcheckpoint内の情報が矛盾する場合は`ValueError`になります。メタデータのない
+旧checkpointでは、作成時に使用したアーキテクチャを呼び出し側が正しく指定する必要があります。
 
 ---
 
@@ -83,6 +102,10 @@ YOLOX モデルを学習します。エポックスケジュールに従って�
 **戻り値:** `YOLOX` (メソッドチェーン用)
 
 **例外:** ステージ開始前に `stop_event` が設定されている場合は `TrainingStopped`。
+
+サイズ情報のない旧checkpointを追加学習しようとすると、データセット準備の前に
+`ValueError`になります。上記の`model_size`引数を使って読み込み直してください。推論にこの
+移行作業は必要ありません。
 
 ---
 
@@ -170,6 +193,11 @@ def save(self, path: str, *, to_cpu: bool = True) -> None
 モデルをメタデータ付き `.pt` ファイルとして保存します。既定では登録済みの
 parametersとbuffersをすべてCPUに配置して保存するため、CPU専用の実機でも
 読み込めます。保存後、メモリ上のモデルは元のdeviceとtrain/eval状態へ戻ります。
+
+モデルサイズが判明している場合、保存メタデータにcheckpoint format version、正規化済み
+モデルサイズ、depth、widthを含めます。`model_size=`付きで読み込んだ旧モデルは、
+保存し直すことでサイズを自己記述するcheckpointになります。サイズ不明のまま保存する
+場合は、存在しないサイズ情報を推測して追加することはありません。
 
 | 引数 | 説明 |
 |------|------|
