@@ -103,5 +103,6 @@ jobs:
         shell: pwsh
         run: |
           .wheel-test/Scripts/python.exe -c "from pathlib import Path; import ptyolox_garage; assert Path('src').resolve() not in Path(ptyolox_garage.__file__).resolve().parents"
+          .wheel-test/Scripts/python.exe -c "from importlib.metadata import version; import ptyolox_garage; assert ptyolox_garage.__version__ == version('ptyolox-garage')"
           .wheel-test/Scripts/python.exe -c "from ptyolox_garage import YOLOX; assert YOLOX('nano', verbose=False)._model_size == 'nano'"
           .wheel-test/Scripts/python.exe -c "from ptyolox_garage_bootstrap import main; assert callable(main)"

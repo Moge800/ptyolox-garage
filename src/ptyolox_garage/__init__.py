@@ -14,15 +14,33 @@ Example::
 
 from __future__ import annotations
 
+import importlib.metadata as _metadata
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .config import AppConfig, ProfileParams
     from .wrapper import YOLOX, TrainingStopped, YOLOXBoxes, YOLOXResult
 
-__all__ = ["TrainingStopped", "YOLOX", "YOLOXBoxes", "YOLOXResult", "AppConfig", "ProfileParams"]
+__all__ = [
+    "TrainingStopped",
+    "YOLOX",
+    "YOLOXBoxes",
+    "YOLOXResult",
+    "AppConfig",
+    "ProfileParams",
+    "__version__",
+]
 
-__version__ = "0.1.0"
+
+def _resolve_version() -> str:
+    """Return the installed distribution version or a source-tree fallback."""
+    try:
+        return _metadata.version("ptyolox-garage")
+    except _metadata.PackageNotFoundError:
+        return "0.0.0+local"
+
+
+__version__ = _resolve_version()
 
 
 def __getattr__(name: str) -> Any:
