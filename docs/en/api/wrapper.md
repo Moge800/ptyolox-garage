@@ -82,6 +82,9 @@ def train(
     on_stage_done: Callable[[int, int, str], None] | None = None,
     stop_event: threading.Event | None = None,
     package_to_cpu: bool = True,
+    *,
+    images_dir: str | None = None,
+    output_dir: str | None = None,
 ) -> "YOLOX"
 ```
 
@@ -89,7 +92,9 @@ Train a YOLOX model. Executes training in stages according to the epoch schedule
 
 | Parameter | Description |
 |-----------|-------------|
-| `data` | Path to `data.yaml` |
+| `data` | Path to `data.yaml`, COCO JSON, or a Label Studio export directory (`result.json` and `images/`) |
+| `images_dir` | Required with COCO JSON; not used with YAML or directory input |
+| `output_dir` | Optional work directory override |
 | `epochs` | Total epochs or staged schedule (e.g., `[100, 200, 300]`) |
 | `batch` | Batch size |
 | `device` | Device to use (`"cpu"` / `"cuda:0"`) |

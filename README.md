@@ -106,7 +106,21 @@ must match the architecture that was used to create the legacy model.
 
 ## Dataset Configuration
 
-`data.yaml` points to a Label Studio COCO export and its image directory:
+Training accepts three input forms. A Label Studio export directory contains
+`result.json` and `images/` side by side:
+
+```text
+export/
+  result.json
+  images/
+```
+
+```python
+model.train(data="export")
+model.train(data="export/result.json", images_dir="export/images")
+```
+
+The existing `data.yaml` form remains supported:
 
 ```yaml
 coco_json: C:/datasets/widgets/result.json
@@ -114,6 +128,9 @@ images_dir: C:/datasets/widgets/images
 output_dir: C:/datasets/widgets/prepared
 val_split: 0.2
 ```
+
+For JSON and directory inputs, `output_dir` can be passed to `train()`; otherwise
+the work directory is `./yolox_work`. The JSON form requires `images_dir`.
 
 PTYOLOX Garage remaps COCO category IDs, validates image paths, creates train/validation splits, and writes the directory structure expected by Pixeltable YOLOX.
 

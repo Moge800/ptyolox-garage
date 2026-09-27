@@ -79,6 +79,9 @@ def train(
     on_stage_done: Callable[[int, int, str], None] | None = None,
     stop_event: threading.Event | None = None,
     package_to_cpu: bool = True,
+    *,
+    images_dir: str | None = None,
+    output_dir: str | None = None,
 ) -> "YOLOX"
 ```
 
@@ -86,7 +89,9 @@ YOLOX モデルを学習します。エポックスケジュールに従って�
 
 | 引数 | 説明 |
 |------|------|
-| `data` | `data.yaml` のパス |
+| `data` | `data.yaml`、COCO JSON、またはLabel Studio展開先（`result.json`と`images/`） |
+| `images_dir` | COCO JSON指定時に必須。YAML・ディレクトリ指定時は不要 |
+| `output_dir` | 任意の作業ディレクトリ上書き |
 | `epochs` | 総エポック数または段階的スケジュール（例: `[100, 200, 300]`） |
 | `batch` | バッチサイズ |
 | `device` | 使用デバイス（`"cpu"` / `"cuda:0"`） |

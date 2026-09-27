@@ -76,15 +76,24 @@ GUI が起動し、4 つのタブ（学習・推論・カメラ・エクスポ�
 
 ## data.yaml の書き方
 
-学習には、Label Studio からエクスポートした COCO 形式の JSON と画像ディレクトリを指定する `data.yaml` が必要です。
+学習には、`result.json`と`images/`が並ぶLabel Studioのエクスポートディレクトリ、またはCOCO JSONと画像ディレクトリを指定できます。
+
+```python
+model.train(data="export")
+model.train(data="export/result.json", images_dir="export/images")
+```
+
+従来の`data.yaml`形式も利用できます。
 
 ```yaml
 coco_json: /path/to/result.json    # Label Studio COCO エクスポート JSON
 images_dir: /path/to/images        # 画像ディレクトリ
 
 # オプション
-output_dir: /path/to/output        # 出力先（省略時はカレントディレクトリ）
+output_dir: /path/to/output        # 作業ディレクトリ（省略時は ./yolox_work）
 val_split: 0.2                     # 検証データの割合（デフォルト: 0.2）
 ```
 
 > `coco_json` と `images_dir` は相対パスの場合、`data.yaml` のあるディレクトリを基準に解決されます。
+
+JSON・ディレクトリ入力時は`train(output_dir=...)`で作業ディレクトリを変更できます。

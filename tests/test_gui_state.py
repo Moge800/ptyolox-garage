@@ -37,6 +37,7 @@ def test_training_profile_save_preserves_language_and_inference_settings(tmp_pat
     tab._imgsz_var = _Value(640)  # type: ignore[assignment]
     tab._workers_var = _Value(2)  # type: ignore[assignment]
     tab._val_split_var = _Value(0.2)  # type: ignore[assignment]
+    tab._output_var = _Value("output")  # type: ignore[assignment]
 
     tab.save_profile()
 
@@ -46,6 +47,7 @@ def test_training_profile_save_preserves_language_and_inference_settings(tmp_pat
     assert saved.iou == 0.61
     assert saved.device == "cuda:0"
     assert saved.model_size == "m"
+    assert saved.output_dir == "output"
 
 
 def test_language_change_is_rejected_while_training() -> None:

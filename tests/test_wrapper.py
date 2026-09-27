@@ -394,6 +394,8 @@ class TestTrainingCancellation:
     def test_yolox_train_passes_stop_event_to_trainer(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        (tmp_path / "labels.json").write_text("{}", encoding="utf-8")
+        (tmp_path / "images").mkdir()
         data_path = tmp_path / "data.yaml"
         data_path.write_text(
             "coco_json: labels.json\nimages_dir: images\noutput_dir: output\n",
@@ -638,6 +640,8 @@ class TestYOLOXSaveLoad:
     def test_train_passes_package_to_cpu_to_trainer(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        (tmp_path / "labels.json").write_text("{}", encoding="utf-8")
+        (tmp_path / "images").mkdir()
         data_path = tmp_path / "data.yaml"
         data_path.write_text(
             "coco_json: labels.json\n"
