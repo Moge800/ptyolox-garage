@@ -76,15 +76,24 @@ See [GUI Guide](gui.md) for details.
 
 ## data.yaml Format
 
-Training requires a `data.yaml` that specifies the COCO-format JSON exported from Label Studio and the image directory.
+Training accepts an export directory with `result.json` and `images/`, or a COCO JSON with an explicit image directory:
+
+```python
+model.train(data="export")
+model.train(data="export/result.json", images_dir="export/images")
+```
+
+The existing `data.yaml` format is also supported:
 
 ```yaml
 coco_json: /path/to/result.json    # Label Studio COCO export JSON
 images_dir: /path/to/images        # Image directory
 
 # Optional
-output_dir: /path/to/output        # Output directory (defaults to current directory)
+output_dir: /path/to/output        # Work directory (defaults to ./yolox_work)
 val_split: 0.2                     # Validation split ratio (default: 0.2)
 ```
 
 > Relative paths in `coco_json` and `images_dir` are resolved relative to the directory containing `data.yaml`.
+
+For JSON and directory inputs, pass `output_dir` to `train()` to change the work directory.

@@ -46,14 +46,51 @@ class TrainTab(ttk.Frame):
         left = ttk.LabelFrame(self, text=tr("学習設定", "Training Settings"), padding=8)
         left.pack(side="left", fill="y", padx=(8, 4), pady=8)
 
-        # data.yaml
-        self._data_var = tk.StringVar()
-        self._add_path_row(
+        # Dataset input
+        self._data_modes = {
+            "yaml": tr("YAML設定", "YAML config"),
+            "json": "COCO JSON",
+            "directory": tr("COCOディレクトリ", "COCO directory"),
+        }
+        self._data_mode_var = tk.StringVar(value=self._data_modes["yaml"])
+        self._active_data_mode = "yaml"
+        self._data_paths = {mode: "" for mode in self._data_modes}
+        ttk.Label(left, text=tr("データ形式:", "Dataset format:")).pack(anchor="w")
+        mode_select = ttk.Combobox(
             left,
-            "data.yaml:",
-            self._data_var,
-            is_file=True,
-            filetypes=[("YAML", "*.yaml *.yml"), (tr("全ファイル", "All Files"), "*.*")],
+            textvariable=self._data_mode_var,
+            values=list(self._data_modes.values()),
+            state="readonly",
+            width=22,
+        )
+        mode_select.pack(anchor="w")
+        mode_select.bind("<<ComboboxSelected>>", lambda _event: self._update_data_mode())
+
+        self._data_var = tk.StringVar()
+        self._data_label = ttk.Label(left, text="data.yaml:")
+        self._data_label.pack(anchor="w")
+        data_row = ttk.Frame(left)
+        data_row.pack(fill="x")
+        ttk.Entry(data_row, textvariable=self._data_var).pack(side="left", fill="x", expand=True)
+        ttk.Button(data_row, text="...", width=3, command=self._browse_data).pack(side="left")
+
+        self._images_var = tk.StringVar()
+        self._images_row = ttk.Frame(left)
+        self._add_path_row(
+            self._images_row,
+            tr("画像ディレクトリ:", "Image directory:"),
+            self._images_var,
+            is_file=False,
+        )
+
+        self._output_var = tk.StringVar()
+        self._output_row = ttk.Frame(left)
+        self._output_row.pack(fill="x")
+        self._add_path_row(
+            self._output_row,
+            tr("出力ディレクトリ (任意):", "Output directory (optional):"),
+            self._output_var,
+            is_file=False,
         )
 
         # Model size
@@ -174,6 +211,7 @@ class TrainTab(ttk.Frame):
         self._val_split_var.set(p.val_split)
         self._val_label.config(text=f"{p.val_split:.0%}")
         self._device_var.set(p.device)
+        self._output_var.set(p.output_dir)
 
     def save_profile(self) -> None:
         profile = self._profile_var.get()
@@ -184,6 +222,7 @@ class TrainTab(ttk.Frame):
             "imgsz": str(self._imgsz_var.get()),
             "workers": str(self._workers_var.get()),
             "val_split": str(self._val_split_var.get()),
+            "output_dir": self._output_var.get().strip(),
         }
         for key, value in values.items():
             self._config_mgr.set(profile, key, value)
@@ -197,11 +236,12 @@ class TrainTab(ttk.Frame):
     # ------------------------------------------------------------------
 
     def _start(self) -> None:
-        data_path = self._data_var.get().strip()
-        if not data_path:
+        try:
+            data_path, images_dir, output_dir = self._training_data_options()
+        except ValueError as e:
             messagebox.showwarning(
                 tr("入力エラー", "Input Error"),
-                tr("data.yaml パスを指定してください。", "Specify a data.yaml path."),
+                str(e),
             )
             return
 
@@ -221,7 +261,7 @@ class TrainTab(ttk.Frame):
 
         self._thread = threading.Thread(
             target=self._run_training,
-            args=(data_path, epoch_schedule),
+            args=(data_path, epoch_schedule, images_dir, output_dir),
             daemon=True,
         )
         self._thread.start()
@@ -237,11 +277,19 @@ class TrainTab(ttk.Frame):
             )
         )
 
-    def _run_training(self, data_path: str, epoch_schedule: list[int]) -> None:
+    def _run_training(
+        self,
+        data_path: str,
+        epoch_schedule: list[int],
+        images_dir: str | None = None,
+        output_dir: str | None = None,
+    ) -> None:
         try:
             model = YOLOX(self._model_var.get(), verbose=False)
             model.train(
                 data=data_path,
+                images_dir=images_dir,
+                output_dir=output_dir,
                 epochs=epoch_schedule,
                 batch=self._batch_var.get(),
                 device=self._device_var.get(),
@@ -306,6 +354,56 @@ class TrainTab(ttk.Frame):
     # Utilities
     # ------------------------------------------------------------------
 
+    def _selected_data_mode(self) -> str:
+        return next(
+            key for key, label in self._data_modes.items() if label == self._data_mode_var.get()
+        )
+
+    def _update_data_mode(self) -> None:
+        mode = self._selected_data_mode()
+        if mode != self._active_data_mode:
+            self._data_paths[self._active_data_mode] = self._data_var.get()
+            self._data_var.set(self._data_paths[mode])
+            self._active_data_mode = mode
+        self._data_label.config(
+            text={
+                "yaml": "data.yaml:",
+                "json": "COCO JSON:",
+                "directory": tr("COCOディレクトリ:", "COCO directory:"),
+            }[mode]
+        )
+        if mode == "json":
+            self._images_row.pack(fill="x", before=self._output_row)
+        else:
+            self._images_row.pack_forget()
+
+    def _browse_data(self) -> None:
+        mode = self._selected_data_mode()
+        if mode == "directory":
+            selected = filedialog.askdirectory()
+        else:
+            filetypes = [("JSON", "*.json")] if mode == "json" else [("YAML", "*.yaml *.yml")]
+            selected = filedialog.askopenfilename(
+                filetypes=[*filetypes, (tr("全ファイル", "All Files"), "*.*")]
+            )
+        if selected:
+            self._data_var.set(selected)
+
+    def _training_data_options(self) -> tuple[str, str | None, str | None]:
+        data_path = self._data_var.get().strip()
+        if not data_path:
+            raise ValueError(
+                tr("学習データのパスを指定してください。", "Specify a training dataset path.")
+            )
+        images_dir = (
+            self._images_var.get().strip() if self._selected_data_mode() == "json" else None
+        )
+        if images_dir == "":
+            raise ValueError(
+                tr("画像ディレクトリを指定してください。", "Specify an image directory.")
+            )
+        return data_path, images_dir, self._output_var.get().strip() or None
+
     def _parse_epochs(self, text: str) -> list[int]:
         parts = [p.strip() for p in text.split(",") if p.strip()]
         if not parts:
@@ -360,13 +458,15 @@ class TrainTab(ttk.Frame):
         row = ttk.Frame(parent)
         row.pack(fill="x")
         ttk.Entry(row, textvariable=var).pack(side="left", fill="x", expand=True)
-        cmd = (
-            (
-                lambda v=var, ft=filetypes: v.set(
-                    filedialog.askopenfilename(filetypes=ft or [(tr("全ファイル", "All Files"), "*.*")])
+        def browse() -> None:
+            selected = (
+                filedialog.askopenfilename(
+                    filetypes=filetypes or [(tr("全ファイル", "All Files"), "*.*")]
                 )
+                if is_file
+                else filedialog.askdirectory()
             )
-            if is_file
-            else (lambda v=var: v.set(filedialog.askdirectory()))
-        )
-        ttk.Button(row, text="...", width=3, command=cmd).pack(side="left")
+            if selected:
+                var.set(selected)
+
+        ttk.Button(row, text="...", width=3, command=browse).pack(side="left")

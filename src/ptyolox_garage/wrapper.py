@@ -421,23 +421,29 @@ class YOLOX:
         on_stage_done: Callable[[int, int, str], None] | None = None,
         stop_event: threading.Event | None = None,
         package_to_cpu: bool = True,
+        *,
+        images_dir: str | None = None,
+        output_dir: str | None = None,
     ) -> YOLOX:
         """Train the model.
 
         Args:
-            data: Path to data.yaml for a Label Studio COCO export.
+            data: Path to data.yaml, a COCO JSON file, or a Label Studio export directory.
             epochs: Epoch count or sequential targets such as ``[100, 200, 300]``.
             batch: Batch size.
             device: Device string: ``'cpu'``, ``'cuda'``, or ``'cuda:0'``.
             imgsz: Input image size.
             workers: Number of data-loader workers.
-            val_split: Validation fraction; defaults to the data.yaml value.
+            val_split: Validation fraction; defaults to the data.yaml value or 0.2.
             pretrained_weights: .pt or .pth weights for fine-tuning. When omitted,
                 use the model previously loaded with ``YOLOX("model.pt")``.
             on_log: Log callback used by the GUI.
             on_stage_done: Stage-completion callback used by the GUI.
             stop_event: Signal that stops before the next training stage.
             package_to_cpu: Save the packaged .pt model with CPU tensors.
+            images_dir: Image directory required when data is a COCO JSON file.
+            output_dir: Work directory override; defaults to the data.yaml value
+                or ``./yolox_work``.
 
         Returns:
             This instance, allowing method chaining.
@@ -457,16 +463,17 @@ class YOLOX:
         if pretrained_weights is None and self._model_path is not None:
             pretrained_weights = self._model_path
 
-        # Load data.yaml.
-        data_cfg = self._load_data_config(data)
-        output_dir = data_cfg.get("output_dir", "./yolox_work")
+        data_cfg = self._load_data_config(data, images_dir=images_dir)
+        work_dir = (
+            output_dir if output_dir is not None else data_cfg.get("output_dir", "./yolox_work")
+        )
         effective_val_split = (
             val_split
             if val_split is not None
             else float(data_cfg.get("val_split", 0.2))
         )
 
-        output_path = Path(output_dir)
+        output_path = Path(work_dir)
         output_path.mkdir(parents=True, exist_ok=True)
 
         # Normalize the epoch schedule.
@@ -880,32 +887,60 @@ class YOLOX:
         return str(output)
 
     # ------------------------------------------------------------------
-    # data.yaml loading
+    # Training data input resolution
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _load_data_config(data: str) -> dict[str, Any]:
+    def _load_data_config(data: str, images_dir: str | None = None) -> dict[str, Any]:
         path = Path(data)
         if not path.exists():
-            raise FileNotFoundError(f"data.yaml が見つかりません: {data}")
+            raise FileNotFoundError(f"学習データが見つかりません: {data}")
 
-        with open(path, encoding="utf-8") as f:
-            cfg = yaml.safe_load(f)
+        if path.is_dir():
+            if images_dir is not None:
+                raise ValueError("COCO ディレクトリ指定時に images_dir は指定できません。")
+            cfg: dict[str, Any] = {
+                "coco_json": path / "result.json",
+                "images_dir": path / "images",
+            }
+        elif path.suffix.lower() == ".json":
+            if not images_dir:
+                raise ValueError("COCO JSON 指定時は images_dir も指定してください。")
+            cfg = {"coco_json": path, "images_dir": Path(images_dir)}
+        elif path.suffix.lower() in (".yaml", ".yml"):
+            if images_dir is not None:
+                raise ValueError("data.yaml 指定時に images_dir は指定できません。")
+            with open(path, encoding="utf-8") as f:
+                cfg = yaml.safe_load(f)
+            if not isinstance(cfg, dict):
+                raise ValueError("data.yaml はキーと値の組で指定してください。")
+            for key in ("coco_json", "images_dir"):
+                if key not in cfg:
+                    raise ValueError(
+                        f"data.yaml に '{key}' が必要です。\n"
+                        "必須キー: coco_json, images_dir\n"
+                        "オプション: output_dir, val_split"
+                    )
+            for key in ("coco_json", "images_dir", "output_dir"):
+                if key in cfg:
+                    if not isinstance(cfg[key], str) or not cfg[key].strip():
+                        raise ValueError(f"data.yaml の '{key}' は空でないパスにしてください。")
+                    value = Path(cfg[key])
+                    cfg[key] = value if value.is_absolute() else path.parent / value
+        else:
+            raise ValueError(
+                "data は .yaml/.yml、COCO .json、または COCO ディレクトリを指定してください。"
+            )
 
-        for key in ("coco_json", "images_dir"):
-            if key not in cfg:
-                raise ValueError(
-                    f"data.yaml に '{key}' が必要です。\n"
-                    "必須キー: coco_json, images_dir\n"
-                    "オプション: output_dir, val_split"
-                )
-
-        # Resolve relative paths against the location of data.yaml.
-        base = path.parent
-        for key in ("coco_json", "images_dir", "output_dir"):
-            if key in cfg:
-                p = Path(cfg[key])
-                if not p.is_absolute():
-                    cfg[key] = str(base / p)
+        json_path = Path(cfg["coco_json"])
+        image_path = Path(cfg["images_dir"])
+        if not json_path.is_file():
+            raise FileNotFoundError(f"COCO JSON が見つかりません: {json_path}")
+        if not image_path.is_dir():
+            raise FileNotFoundError(f"画像ディレクトリが見つかりません: {image_path}")
+        cfg["coco_json"] = str(json_path)
+        cfg["images_dir"] = str(image_path)
+        if "output_dir" in cfg:
+            cfg["output_dir"] = str(cfg["output_dir"])
 
         return cfg

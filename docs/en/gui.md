@@ -28,7 +28,10 @@ Train YOLOX models.
 
 | Field | Description |
 |-------|-------------|
-| data.yaml | Path to Label Studio COCO export configuration file |
+| Dataset format | YAML config, COCO JSON, or COCO directory |
+| Dataset path | YAML file, COCO JSON file, or export directory containing `result.json` and `images/` |
+| Image directory | Required for COCO JSON; hidden for other modes |
+| Output directory | Optional work directory; a YAML value is used when this is blank |
 | Model Size | Select from `nano` / `tiny` / `s` / `m` / `l` / `x` |
 | Epochs | Comma-separated staged schedule (e.g., `100,200,300`) |
 | Batch Size | Training batch size |

@@ -105,7 +105,21 @@ checkpointのファイル名からモデルサイズを推測することはあ�
 
 ## データセット設定
 
-`data.yaml`にLabel StudioのCOCO JSONと画像ディレクトリを指定します。
+学習入力は3形式に対応しています。Label Studioの展開先ディレクトリは
+`result.json`と`images/`を直下に配置します。
+
+```text
+export/
+  result.json
+  images/
+```
+
+```python
+model.train(data="export")
+model.train(data="export/result.json", images_dir="export/images")
+```
+
+従来の`data.yaml`も引き続き利用できます。
 
 ```yaml
 coco_json: C:/datasets/widgets/result.json
@@ -113,6 +127,9 @@ images_dir: C:/datasets/widgets/images
 output_dir: C:/datasets/widgets/prepared
 val_split: 0.2
 ```
+
+JSON形式では`images_dir`が必須です。JSON・ディレクトリ形式の作業先は
+`train(output_dir="...")`で変更でき、省略時は`./yolox_work`です。
 
 PTYOLOX GarageはCOCOカテゴリIDの再割り当て、画像パスの検証、学習/検証データの分割、Pixeltable YOLOX用ディレクトリの生成を行います。
 
